@@ -11,6 +11,13 @@ The reason I began this project is because there didn't exist any other modern, 
 ## Current state
 There is some basic UI, with tabs that can be clicked on and closed. Some buttons that can be clicked on. And a input bar that can be clicked on and typed.
 
+# Libraries used
+- [nlohmann/json](https://github.com/nlohmann/json) - MIT
+- [backward-cpp](https://github.com/bombela/backward-cpp) - MIT
+- [Dear ImGui](https://github.com/ocornut/imgui) - MIT
+- [tinyxml2](https://github.com/leethomason/tinyxml2) - Zlib
+- [libcurl](https://curl.se/libcurl/) - [curl license](https://curl.se/docs/copyright.html)
+
 # Roadmap
 - [ ] Get networking and graphics working
     - [X] win32
@@ -72,10 +79,3 @@ TODO
 
 ### Starting the build
 TODO
-
-# Libraries used
-- [nlohmann/json](https://github.com/nlohmann/json) - MIT
-- [backward-cpp](https://github.com/bombela/backward-cpp) - MIT
-- [Dear ImGui](https://github.com/ocornut/imgui) - MIT
-- [tinyxml2](https://github.com/leethomason/tinyxml2) - Zlib
-- [libcurl](https://curl.se/libcurl/) - [curl license](https://curl.se/docs/copyright.html)

@@ -64,11 +64,27 @@ typedef struct GSGL_MouseInputObject {
 typedef enum {
     KEY_NULL            = 0,        // Key: NULL, used for no key pressed
 
-    KEY_APOSTROPHE      = 39,       // Key: '
-    KEY_COMMA           = 44,       // Key: ,
-    KEY_MINUS           = 45,       // Key: -
-    KEY_PERIOD          = 46,       // Key: .
-    KEY_SLASH           = 47,       // Key: /
+    KEY_BACKSPACE       = 8,        // Key: Backspace
+    KEY_TAB             = 9,        // Key: Tab
+    KEY_ENTER           = 13,       // Key: Enter
+    KEY_LEFT_SHIFT      = 16,       // Key: Shift left
+    KEY_LEFT_CONTROL    = 17,       // Key: Control left
+    KEY_LEFT_ALT        = 18,       // Key: Alt left
+    KEY_PAUSE           = 19,       // Key: Pause
+    KEY_CAPS_LOCK       = 20,       // Key: Caps lock
+    KEY_ESCAPE          = 27,       // Key: Esc
+    KEY_SPACE           = 32,       // Key: Space
+    KEY_PAGE_UP         = 33,       // Key: Page up
+    KEY_PAGE_DOWN       = 34,       // Key: Page down
+    KEY_END             = 35,       // Key: End
+    KEY_HOME            = 36,       // Key: Home
+    KEY_LEFT            = 37,       // Key: Cursor left
+    KEY_UP              = 38,       // Key: Cursor up
+    KEY_RIGHT           = 39,       // Key: Cursor right
+    KEY_DOWN            = 40,       // Key: Cursor down
+    KEY_INSERT          = 45,       // Key: Ins
+    KEY_DELETE          = 46,       // Key: Del
+
     KEY_ZERO            = 48,       // Key: 0
     KEY_ONE             = 49,       // Key: 1
     KEY_TWO             = 50,       // Key: 2
@@ -79,8 +95,6 @@ typedef enum {
     KEY_SEVEN           = 55,       // Key: 7
     KEY_EIGHT           = 56,       // Key: 8
     KEY_NINE            = 57,       // Key: 9
-    KEY_SEMICOLON       = 59,       // Key: ;
-    KEY_EQUAL           = 61,       // Key: =
     KEY_A               = 65,       // Key: A | a
     KEY_B               = 66,       // Key: B | b
     KEY_C               = 67,       // Key: C | c
@@ -107,53 +121,41 @@ typedef enum {
     KEY_X               = 88,       // Key: X | x
     KEY_Y               = 89,       // Key: Y | y
     KEY_Z               = 90,       // Key: Z | z
-    KEY_LEFT_BRACKET    = 91,       // Key: [
-    KEY_BACKSLASH       = 92,       // Key: '\'
-    KEY_RIGHT_BRACKET   = 93,       // Key: ]
-    KEY_GRAVE           = 96,       // Key: `
 
-    KEY_SPACE           = 32,       // Key: Space
-    KEY_ESCAPE          = 256,      // Key: Esc
-    KEY_ENTER           = 257,      // Key: Enter
-    KEY_TAB             = 258,      // Key: Tab
-    KEY_BACKSPACE       = 259,      // Key: Backspace
-    KEY_INSERT          = 260,      // Key: Ins
-    KEY_DELETE          = 261,      // Key: Del
-    KEY_RIGHT           = 262,      // Key: Cursor right
-    KEY_LEFT            = 263,      // Key: Cursor left
-    KEY_DOWN            = 264,      // Key: Cursor down
-    KEY_UP              = 265,      // Key: Cursor up
-    KEY_PAGE_UP         = 266,      // Key: Page up
-    KEY_PAGE_DOWN       = 267,      // Key: Page down
-    KEY_HOME            = 268,      // Key: Home
-    KEY_END             = 269,      // Key: End
-    KEY_CAPS_LOCK       = 280,      // Key: Caps lock
-    KEY_SCROLL_LOCK     = 281,      // Key: Scroll down
-    KEY_NUM_LOCK        = 282,      // Key: Num lock
-    KEY_PRINT_SCREEN    = 283,      // Key: Print screen
-    KEY_PAUSE           = 284,      // Key: Pause
-    KEY_F1              = 290,      // Key: F1
-    KEY_F2              = 291,      // Key: F2
-    KEY_F3              = 292,      // Key: F3
-    KEY_F4              = 293,      // Key: F4
-    KEY_F5              = 294,      // Key: F5
-    KEY_F6              = 295,      // Key: F6
-    KEY_F7              = 296,      // Key: F7
-    KEY_F8              = 297,      // Key: F8
-    KEY_F9              = 298,      // Key: F9
-    KEY_F10             = 299,      // Key: F10
-    KEY_F11             = 300,      // Key: F11
-    KEY_F12             = 301,      // Key: F12
-    KEY_LEFT_SHIFT      = 340,      // Key: Shift left
-    KEY_LEFT_CONTROL    = 341,      // Key: Control left
-    KEY_LEFT_ALT        = 342,      // Key: Alt left
-    KEY_LEFT_SUPER      = 343,      // Key: Super left
-    KEY_RIGHT_SHIFT     = 344,      // Key: Shift right
-    KEY_RIGHT_CONTROL   = 345,      // Key: Control right
-    KEY_RIGHT_ALT       = 346,      // Key: Alt right
-    KEY_RIGHT_SUPER     = 347,      // Key: Super right
-    KEY_KB_MENU         = 348,      // Key: KB menu
+    KEY_LEFT_SUPER      = 91,       // Key: Super left
+
+    KEY_F1              = 112,      // Key: F1
+    KEY_F2              = 113,      // Key: F2
+    KEY_F3              = 114,      // Key: F3
+    KEY_F4              = 115,      // Key: F4
+    KEY_F5              = 116,      // Key: F5
+    KEY_F6              = 117,      // Key: F6
+    KEY_F7              = 118,      // Key: F7
+    KEY_F8              = 119,      // Key: F8
+    KEY_F9              = 120,      // Key: F9
+    KEY_F10             = 121,      // Key: F10
+    KEY_F11             = 122,      // Key: F11
+    KEY_F12             = 123,      // Key: F12
+    KEY_SCROLL_LOCK     = 145,      // Key: Scroll lock
+
+    KEY_SEMICOLON       = 186,      // Key: ;
+    KEY_EQUAL           = 187,      // Key: =
+    KEY_COMMA           = 188,      // Key: ,
+    KEY_MINUS           = 189,      // Key: -
+    KEY_PERIOD          = 190,      // Key: .
+    KEY_SLASH           = 191,      // Key: /
+    KEY_GRAVE           = 192,      // Key: `
+    KEY_LEFT_BRACKET    = 219,      // Key: [
+    KEY_BACKSLASH       = 220,      // Key: '\'
+    KEY_RIGHT_BRACKET   = 221,      // Key: ]
+    KEY_APOSTROPHE      = 222,      // Key: '
 } GSGL_Key;
+
+typedef enum {
+    GSGL_POINTER,
+    GSGL_CLICK,
+    GSGL_TEXT
+} GSGL_Cursor;
 
 // == CORE GRAPHICS
 
@@ -175,8 +177,9 @@ GSGL_API void gsgl_GetLastError(); // Gets last Windows error
 GSGL_API int gsgl_GetScreenWidth(); // Gets screen width
 GSGL_API int gsgl_GetScreenHeight(); // Gets screen height
 
-GSGL_API bool gsgl_IsWindowMinimized();
-GSGL_API bool gsgl_IsWindowMaximized();
+GSGL_API bool gsgl_IsWindowMinimized(); // Returns true if window is minimized
+GSGL_API bool gsgl_IsWindowMaximized(); // Returns true if window is maximized
+GSGL_API bool gsgl_IsWindowVisible(); // Returns true if window is deemed visible
 
 // rudimentary graphics
 GSGL_API void gsgl_Draw(); // Draws the on-screen buffer onto the screen
@@ -220,12 +223,16 @@ GSGL_API bool gsgl_IsMouseButtonUp(GSGL_MouseButton button); // Returns true if 
 GSGL_API bool gsgl_IsMouseButtonPressed(GSGL_MouseButton button); // Returns true if the mouse button is pressed
 GSGL_API bool gsgl_IsMouseButtonReleased(GSGL_MouseButton button); // Returns true if the mouse button is released
 
+GSGL_API void gsgl_SetCursor(GSGL_Cursor cursor); // Sets cursor icon
+
 // keyboard
 GSGL_API bool gsgl_IsKeyDown(GSGL_Key key); // Returns true if specific key is down
 GSGL_API bool gsgl_IsKeyUp(GSGL_Key key); // Returns true if specific key is up
 
 GSGL_API bool gsgl_IsKeyPressed(GSGL_Key key); // Returns true if specific key is pressed
 GSGL_API bool gsgl_IsKeyReleased(GSGL_Key key); // Returns true if specific key is released
+
+GSGL_API bool gsgl_IsKeyRepeat(GSGL_Key key); // Returns true if specific key is pressed, with repeat capability
 
 GSGL_API char gsgl_GetLastChar(); // Returns the last character
 

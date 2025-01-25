@@ -157,8 +157,15 @@ typedef struct GraphicsCore {
 
         bool keysNew[KEYBOARD_KEYS];
         bool keysOld[KEYBOARD_KEYS];
+        int keysRepeat[KEYBOARD_KEYS];
 
         char lastChar;
+
+        int repeatDelay;
+        int repeatSpeed;
+
+        GSGL_Cursor cursorStyle;
+        bool cursorChanged;
     } Input;
 
     struct { // This part is directly taken from raylib
@@ -170,15 +177,13 @@ typedef struct GraphicsCore {
         double target;                      // Desired time for one frame, if 0 not applied
         unsigned long long int base;
         unsigned int frameCounter;          // Frame counter
-
-        // we dont use GLFW, so we need to initiate a custom counter
-        
     } Time;
 } GraphicsCore;
 
 GraphicsCore core = { 0 };
 
 // Internal functions
+void gi_UpdateSettings();
 void gi_ResizeWindow(int width, int height);
 void gi_InitBuffers();
 
@@ -242,7 +247,18 @@ void gsgl_InitWindow(int width, int height, const char *title) {
 
     core.Input.mouseOld = { 0 };
     core.Input.mouseNew = { 0 };
+
+    for (int i = 0; i < KEYBOARD_KEYS; i++) {
+        core.Input.keysOld[i] = false;
+        core.Input.keysNew[i] = false;
+        core.Input.keysRepeat[i] = 0;
+    }
+
     core.Input.lastChar = 0;
+    core.Input.cursorStyle = GSGL_POINTER;
+    core.Input.cursorChanged = true;
+
+    gi_UpdateSettings();
 
     // set class  name
     const char* className = "tinyweb";
@@ -356,18 +372,10 @@ void gsgl_PollEvents() {
     core.Input.lastChar = 0;
     core.Input.mouseOld = core.Input.mouseNew;
 
-    // can't set it directly so this has to do
     for (int i = 0; i < KEYBOARD_KEYS; i++) {
         core.Input.keysOld[i] = core.Input.keysNew[i];
     }
-
-    /*core.Input.mouseNew.leftMouseButton = false;
-    core.Input.mouseNew.middleMouseButton = false;
-    core.Input.mouseNew.rightMouseButton = false;
-    core.Input.mouseNew.mouseScrollWheel = 0;
-    core.Input.mouseNew.mouseX = 0;
-    core.Input.mouseNew.mouseY = 0;*/
-
+    
     int res = GetMessage(&core.Window.msg, core.Window.handle, 0, 0);
     if (res == 0) {
         gsgl_CloseWindow();
@@ -400,10 +408,15 @@ bool gsgl_IsWindowMinimized() {
 bool gsgl_IsWindowMaximized() {
     return IsZoomed(core.Window.handle);
 }
+bool gsgl_IsWindowVisible() {
+    // Currently functions like IsWindowMinimized.
+    // This is just future proofing when I need it at one point.
+    return IsIconic(core.Window.handle);
+}
 
 // Graphics functions
 void gsgl_Draw() {
-    if (gsgl_IsWindowMinimized()) return;
+    if (gsgl_IsWindowVisible()) return;
 
     BITMAPINFO bmi = {0};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -423,17 +436,30 @@ void gsgl_SwapBuffers() {
     int start = core.Graphics.WriteBox.startX * core.Graphics.WriteBox.startY;
     int end = core.Graphics.WriteBox.endX * core.Graphics.WriteBox.endY;
 
-    //int start = 0;
-    //int end = core.Window.width * core.Window.height;
-
-    //printf("%i\n", end - start);
-
     for (int i = start; i < end; i++) {
         core.Graphics.buffer2[i] = core.Graphics.buffer1[i];
         core.Graphics.buffer1[i] = core.Graphics.swapBufferClear;
     }
 
     gsgl_WriteBoxReset();
+
+    // Update cursor
+    if (core.Input.cursorChanged == true && !gsgl_IsWindowVisible()) {
+        // This is a bit messy.
+        if (core.Input.cursorStyle == GSGL_POINTER) {
+            core.Window.cursor = LoadCursor(NULL, IDC_ARROW);
+        } else if (core.Input.cursorStyle == GSGL_CLICK) {
+            core.Window.cursor = LoadCursor(NULL, IDC_HAND);
+        } else if (core.Input.cursorStyle == GSGL_TEXT) {
+            core.Window.cursor = LoadCursor(NULL, IDC_IBEAM);
+        }
+        SetCursor(core.Window.cursor);
+
+        core.Input.cursorChanged = false;
+    }
+    if (core.Input.cursorStyle != GSGL_POINTER) {
+        gsgl_SetCursor(GSGL_POINTER);
+    }
 
     // Framerate limiter
     core.Time.current = gsgl_GetTime();
@@ -450,12 +476,12 @@ void gsgl_SwapBuffers() {
         double waitTime = core.Time.current - core.Time.previous;
         core.Time.previous = core.Time.current;
 
-        core.Time.frame += waitTime;    // Total frame time: update + draw + wait
+        core.Time.frame += waitTime; // Total frame time: update + draw + wait
     }
 }
 
 void gsgl_BufferAccess(int buffer, int index, uint32_t color) {
-    if (gsgl_IsWindowMinimized()) return; // optimization
+    if (gsgl_IsWindowVisible()) return; // optimization
 
     int x = (int)floor(index % core.Window.width);
     int y = (int)floor(index / core.Window.width);
@@ -617,6 +643,19 @@ uint32_t gsgl_PackColor(Color col) {
 }
 
 // Internal functions
+void gi_UpdateSettings() {
+    // update some stuff. not a lot needs to be updated here currently
+    // this seems to fire somewhat frequently but its kind of weird when it updates
+
+    DWORD repeatDelay;
+    DWORD repeatSpeed;
+
+    SystemParametersInfoA(SPI_GETKEYBOARDDELAY, 0, &repeatDelay, 0);
+    SystemParametersInfoA(SPI_GETKEYBOARDSPEED, 0, &repeatSpeed, 0);
+
+    core.Input.repeatDelay = int(float(repeatDelay) * 60);
+    core.Input.repeatSpeed = int(roundf((1 / float(repeatSpeed+1)) * 60));
+}
 void gi_ResizeWindow(int width, int height) {
     core.Window.width = width;
     core.Window.height = height;
@@ -706,15 +745,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         }
 
         // keyboard
+        case WM_SYSKEYDOWN:
         case WM_KEYDOWN: {
+            // whenever i want to add any more keys into the big enum thing i just use this
+            //printf("key down: %i\n", int(wParam));
+
             core.Input.keysNew[(int)wParam] = true;
             return 0;
         }
+        case WM_SYSKEYUP:
         case WM_KEYUP: {
             core.Input.keysNew[(int)wParam] = false;
+            core.Input.keysRepeat[(int)wParam] = 0;
             return 0;
         }
 
+        case WM_SYSCHAR:
         case WM_CHAR: {
             core.Input.lastChar = char(int(wParam));
             return 0;
@@ -726,6 +772,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 SetCursor(core.Window.cursor);
                 return TRUE;
             }
+        }
+        case WM_SETTINGCHANGE: {
+            gi_UpdateSettings();
+            return 0;
         }
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -841,6 +891,13 @@ bool gsgl_IsMouseButtonReleased(GSGL_MouseButton button) {
     return false;
 }
 
+void gsgl_SetCursor(GSGL_Cursor cursor) {
+    if (gsgl_IsWindowMinimized()) return;
+
+    core.Input.cursorStyle = cursor;
+    core.Input.cursorChanged = true;
+}
+
 // key
 bool gsgl_IsKeyDown(GSGL_Key key) {
     if (core.Input.keysNew[key] == true) return true;
@@ -857,6 +914,34 @@ bool gsgl_IsKeyPressed(GSGL_Key key) {
 bool gsgl_IsKeyReleased(GSGL_Key key) {
     if (core.Input.keysNew[key] == false && core.Input.keysOld[key] == true) return true;
     else return false;
+}
+
+bool gsgl_IsKeyRepeat(GSGL_Key key) {
+    // this may or may not be the best idea.
+    // handle the repeating logic here
+
+    if (core.Input.keysNew[key] == true && core.Input.keysOld[key] == false) {
+        core.Input.keysRepeat[key] = core.Input.repeatDelay;
+        return true;
+    } else if (core.Input.keysNew[key] == false && core.Input.keysOld[key] == true) {
+        core.Input.keysRepeat[key] = 0;
+        return false;
+    }
+
+    if (core.Input.keysNew[key] == false) {
+        core.Input.keysRepeat[key] = 0;
+        return false;
+    } else {
+        core.Input.keysRepeat[key]--;
+        if (core.Input.keysRepeat[key] <= 0) {
+            core.Input.keysRepeat[key] = core.Input.repeatSpeed;
+            return true;
+        }
+        return false;
+    }
+
+    // this should never be actually hit
+    return false;
 }
 
 char gsgl_GetLastChar() {

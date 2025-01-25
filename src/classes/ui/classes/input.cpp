@@ -32,27 +32,52 @@ void Input::update() {
             focus = true;
             if (resetOnFocus == true) currentText = "";
         }
+
+        gsgl_SetCursor(GSGL_TEXT);
     } else {
         if (gsgl_IsMouseButtonPressed(GSGL_LMB) && focus == true) focus = false;
     }
 
     if (focus == true) {
+        int textLength = (int)currentText.length();
+
         char chr = gsgl_GetLastChar();
-        if (chr != 0 && chr != 8 && chr >= 39 && chr <= 122 || chr == 32) { // 8 is backspace, 32 is space
-            std::string lastChar = "";
-            lastChar = chr;
-            currentText.append(lastChar);
-        } else if (chr == 8 && currentText.length() > 0) {
-            if (selectionStart == 0) {
-                currentText.erase(currentText.end() - 1);
-            } else {
-                if (selectionSize == 0) {
-                    currentText.erase(currentText.begin() + (selectionStart - 1));
-                } else if (selectionSize > 0) {
-                    currentText.erase(currentText.begin() + (selectionStart - 1), currentText.begin() + selectionSize);
-                }
+        if (chr != 0 && chr != KEY_BACKSPACE && chr >= 33 && chr <= 126 || chr == KEY_SPACE) {
+            currentText.insert(currentText.begin() + selectionStart, chr);
+
+            selectionStart++;
+            textLength++;
+        } else if (chr == KEY_BACKSPACE && currentText.length() > 0) {
+            if (selectionSize == 0) {
+                if (selectionStart > 0) selectionStart--;
+                currentText.erase(currentText.begin() + selectionStart);
+            } else if (selectionSize > 0) {
+                if (selectionStart > 0) selectionStart--;
+                currentText.erase(currentText.begin() + selectionStart, currentText.begin() + selectionStart + selectionSize);
+                selectionSize = 0;
             }
         }
+
+        if (gsgl_IsKeyRepeat(KEY_LEFT) && selectionStart >= 0) {
+            if (gsgl_IsKeyDown(KEY_LEFT_SHIFT) && selectionSize > 0) {
+                selectionSize--;
+            } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT) && selectionStart > 0) {
+                selectionStart--;
+            }
+        } else if (gsgl_IsKeyRepeat(KEY_RIGHT) && selectionStart >= 0) {
+            if (gsgl_IsKeyDown(KEY_LEFT_SHIFT) && selectionSize >= 0) {
+                selectionSize++;
+            } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
+                selectionStart++;
+            }
+        }
+
+        if (selectionStart < 0) selectionStart = 0;
+        if (selectionStart >= textLength) selectionStart = textLength;
+
+        if (selectionSize >= textLength-selectionStart) selectionSize = textLength-selectionStart;
+
+        //printf("%i %i\n", selectionStart, selectionSize);
     } else {
         selectionStart = 0;
         selectionSize = 0;
@@ -61,7 +86,7 @@ void Input::update() {
 void Input::draw() {
     const char* txtToUse = defaultText.c_str();
     Color colToUse = defaultTextColor;
-    if (currentText.length() > 0) {
+    if (currentText.length() > 0 || focus == true) {
         txtToUse = currentText.c_str();
         colToUse = currentTextColor;
     }
@@ -69,6 +94,14 @@ void Input::draw() {
     gsgl_ScissorsStart(pos.x, pos.y, size.x, size.y);
 
     gsgl_DrawText(font, txtToUse, pos.x, pos.y, float(textSize), colToUse);
+    if (selectionStart >= 0 && focus == true) {
+        if (selectionSize == 0) {
+            Vector2i textWidth = gsgl_GetTextSize(font, currentText.substr(0, selectionStart).c_str(), float(textSize));
+            gsgl_Rect(pos.x+textWidth.x, pos.y, 1, textSize, currentTextColor);
+        } else if (selectionSize > 0) {
+            
+        }
+    }
 
     gsgl_ScissorsStop();
 }

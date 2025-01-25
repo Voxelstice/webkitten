@@ -14,6 +14,8 @@ bool ui_BasicButton(GSGL_Font font, const char* txt, int textSize, Vector2i pos,
     Vector2i txtSize = gsgl_GetTextSize(font, txt, float(textSize));
     gsgl_DrawText(font, txt, pos.x + (size.x/2) - (txtSize.x/2), pos.y + (size.y/2) - (txtSize.y/2), float(textSize), textColor);
 
+    if (hovered == true) gsgl_SetCursor(GSGL_CLICK);
+
     gsgl_ScissorsStop();
 
     return hovered == true && pressed == true;
