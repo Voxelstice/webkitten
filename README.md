@@ -8,6 +8,9 @@ A lightweight browser that can load and render basic websites.
 ## Why?
 The reason I began this project is because there didn't exist any other modern, performant and lightweight browser that could run on my Futijsu Lifebook P1510 a little bit smoother. Another reason of this project is to test my own knowledge, and mostly just for fun. This may not make it to the final goal.
 
+## Current state
+There is some basic UI, with tabs that can be clicked on and closed. Some buttons that can be clicked on. And a input bar that can be clicked on and typed.
+
 # Roadmap
 - [ ] Get networking and graphics working
     - [X] win32
@@ -48,7 +51,7 @@ This would have had an automatic building process but I couldn't quite get OpenS
 - Extract the recently-downloaded ZIP file and rename the curl folder to just "curl". Then put it in the project folder.
 
 ### Certificate
-libcurl requires a certificate file in order to attempt HTTPS connections. [Get it here.](https://curl.se/docs/caextract.html) After you download the certificate file, rename it to ``cacert.pem`` and move it to the main folder (``/tinyweb``)
+libcurl requires a certificate file in order to attempt HTTPS connections. [Get it here.](https://curl.se/docs/caextract.html) After you download the certificate file, rename it to ``cacert.pem`` and move it to the project folder.
 
 ### Starting the build
 This project uses CMake and Ninja. I develop this on Windows using Visual Studio Code with the ``C/C++``, ``CMake``, and ``CMake Tools`` extensions. Then you need the MSVC compiler (which can be obtained by installing it from Microsoft's official site, or by downloading Visual Studio 2022 and installing "Game development for C++" without anything but MSVC).
