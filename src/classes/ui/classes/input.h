@@ -12,6 +12,9 @@ class Input {
         void update();
         void draw();
 
+        // selection functions
+        void selectionErase();
+
         // text functions
         void setPosition(Vector2i m_pos);
         void setSize(Vector2i m_size);

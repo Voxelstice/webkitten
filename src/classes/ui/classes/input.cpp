@@ -30,6 +30,7 @@ void Input::update() {
     if (hovered == true) {
         if (gsgl_IsMouseButtonPressed(GSGL_LMB) && focus == false) { 
             focus = true;
+            selectionStart = int(currentText.length());
             if (resetOnFocus == true) currentText = "";
         }
 
@@ -43,32 +44,47 @@ void Input::update() {
 
         char chr = gsgl_GetLastChar();
         if (chr != 0 && chr != KEY_BACKSPACE && chr >= 33 && chr <= 126 || chr == KEY_SPACE) {
+            if (selectionSize != 0) selectionErase();
             currentText.insert(currentText.begin() + selectionStart, chr);
 
             selectionStart++;
             textLength++;
         } else if (chr == KEY_BACKSPACE && currentText.length() > 0) {
-            if (selectionSize == 0) {
-                if (selectionStart > 0) selectionStart--;
-                currentText.erase(currentText.begin() + selectionStart);
-            } else if (selectionSize > 0) {
-                if (selectionStart > 0) selectionStart--;
-                currentText.erase(currentText.begin() + selectionStart, currentText.begin() + selectionStart + selectionSize);
+            selectionStart--;
+            selectionErase();
+        }
+
+        if (gsgl_IsKeyRepeat(KEY_LEFT) && selectionStart >= 0) {
+            if (gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
+                selectionSize--;
+            } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT) && selectionStart > 0) {
+                selectionStart--;
+                selectionSize = 0;
+            }
+        } else if (gsgl_IsKeyRepeat(KEY_RIGHT) && selectionStart >= 0) {
+            if (gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
+                selectionSize++;
+            } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
+                selectionStart++;
                 selectionSize = 0;
             }
         }
 
-        if (gsgl_IsKeyRepeat(KEY_LEFT) && selectionStart >= 0) {
-            if (gsgl_IsKeyDown(KEY_LEFT_SHIFT) && selectionSize > 0) {
-                selectionSize--;
-            } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT) && selectionStart > 0) {
-                selectionStart--;
-            }
-        } else if (gsgl_IsKeyRepeat(KEY_RIGHT) && selectionStart >= 0) {
-            if (gsgl_IsKeyDown(KEY_LEFT_SHIFT) && selectionSize >= 0) {
-                selectionSize++;
-            } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
-                selectionStart++;
+        if (gsgl_IsKeyDown(KEY_LEFT_CONTROL)) {
+            if (gsgl_IsKeyPressed(KEY_A)) {
+                selectionStart = 0;
+                selectionSize = textLength;
+            } else if (gsgl_IsKeyPressed(KEY_C)) {
+                if (selectionSize > 0) gsgl_SetClipboardText(currentText.substr(selectionStart, selectionSize).c_str());
+                else if (selectionSize < 0) gsgl_SetClipboardText(currentText.substr(selectionStart+selectionSize, selectionSize).c_str());
+            } else if (gsgl_IsKeyPressed(KEY_V)) {
+                const char* dataChar = gsgl_GetClipboardText();
+                std::string data = dataChar;
+                selectionErase();
+                currentText.insert(currentText.begin() + selectionStart, data.begin(), data.end());
+                selectionStart += (int)data.length();
+                textLength += (int)data.length();
+                selectionSize = 0;
             }
         }
 
@@ -76,8 +92,7 @@ void Input::update() {
         if (selectionStart >= textLength) selectionStart = textLength;
 
         if (selectionSize >= textLength-selectionStart) selectionSize = textLength-selectionStart;
-
-        //printf("%i %i\n", selectionStart, selectionSize);
+        if (selectionSize < -selectionStart) selectionSize = -selectionStart;
     } else {
         selectionStart = 0;
         selectionSize = 0;
@@ -97,15 +112,45 @@ void Input::draw() {
     if (selectionStart >= 0 && focus == true) {
         if (selectionSize == 0) {
             Vector2i textWidth = gsgl_GetTextSize(font, currentText.substr(0, selectionStart).c_str(), float(textSize));
-            gsgl_Rect(pos.x+textWidth.x, pos.y, 1, textSize, currentTextColor);
+            gsgl_Rect(pos.x+textWidth.x+1, pos.y, 1, textSize, currentTextColor);
         } else if (selectionSize > 0) {
-            
+            Vector2i textWidthSelectStart = gsgl_GetTextSize(font, currentText.substr(0, selectionStart).c_str(), float(textSize));
+            Vector2i textWidthSelectSize = gsgl_GetTextSize(font, currentText.substr(selectionStart, selectionSize).c_str(), float(textSize));
+
+            gsgl_Rect(pos.x+textWidthSelectStart.x+textWidthSelectSize.x+1, pos.y, 1, textSize, currentTextColor);
+            gsgl_Rect(pos.x+textWidthSelectStart.x+1, pos.y+int(textSize*0.9), textWidthSelectSize.x, int(textSize*0.1), currentTextColor);
+        } else if (selectionSize < 0) {
+            Vector2i textWidthSelect = gsgl_GetTextSize(font, currentText.substr(0, selectionStart+selectionSize).c_str(), float(textSize));
+            Vector2i textWidthSelectStart = gsgl_GetTextSize(font, currentText.substr(0, selectionStart).c_str(), float(textSize));
+            Vector2i textWidthSelectSize = gsgl_GetTextSize(font, currentText.substr(selectionStart+selectionSize, selectionSize).c_str(), float(textSize));
+
+            gsgl_Rect(pos.x+textWidthSelect.x+textWidthSelectSize.x+1, pos.y, 1, textSize, currentTextColor);
+            gsgl_Rect(pos.x+textWidthSelectStart.x-textWidthSelectSize.x+1, pos.y+int(textSize*0.9), textWidthSelectSize.x, int(textSize*0.1), currentTextColor);
         }
     }
 
     gsgl_ScissorsStop();
 }
 
+// selection functions
+void Input::selectionErase() {
+    selectionStart++;
+    if (selectionSize == 0) {
+        if (selectionStart > 0) selectionStart--;
+        currentText.erase(currentText.begin() + selectionStart);
+    } else if (selectionSize > 0) {
+        if (selectionStart > 0) selectionStart--;
+        currentText.erase(currentText.begin() + selectionStart, currentText.begin() + selectionStart + selectionSize);
+        selectionSize = 0;
+    } else if (selectionSize < 0) {
+        if (selectionStart >= currentText.length()) selectionStart--;
+        currentText.erase(currentText.begin() + selectionStart + selectionSize, currentText.begin() + selectionStart);
+        selectionStart += selectionSize;
+        selectionSize = 0;
+    }
+}
+
+// text functions
 void Input::setPosition(Vector2i m_pos) {
     pos = m_pos;
 }

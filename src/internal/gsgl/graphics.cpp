@@ -862,6 +862,10 @@ void gsgl_WaitTime(double seconds) {
 #endif
 }
 
+float gsgl_GetFrameTime() {
+    return (float)core.Time.frame;
+}
+
 // input
 // mouse
 Vector2i gsgl_GetMousePosition() {
@@ -932,7 +936,7 @@ bool gsgl_IsKeyRepeat(GSGL_Key key) {
         core.Input.keysRepeat[key] = 0;
         return false;
     } else {
-        core.Input.keysRepeat[key]--;
+        core.Input.keysRepeat[key] -= int(gsgl_GetFrameTime()*60);
         if (core.Input.keysRepeat[key] <= 0) {
             core.Input.keysRepeat[key] = core.Input.repeatSpeed;
             return true;
@@ -946,4 +950,60 @@ bool gsgl_IsKeyRepeat(GSGL_Key key) {
 
 char gsgl_GetLastChar() {
     return core.Input.lastChar;
+}
+
+// clipboard
+const char* gsgl_GetClipboardText() {
+    if (!IsClipboardFormatAvailable(CF_TEXT)) {
+        Logger_log(LOGGER_ERROR, "CLIPBOARD: Text format not available (Get)");
+        return "";
+    }
+    if (!OpenClipboard(core.Window.handle)) {
+        Logger_log(LOGGER_ERROR, "CLIPBOARD: Couldn't open clipboard (Get)");
+        gsgl_GetLastError();
+        return "";
+    }
+
+    HANDLE hData = GetClipboardData(CF_TEXT);
+    if (hData == nullptr) {
+        Logger_log(LOGGER_ERROR, "CLIPBOARD: Received data handle was NULL");
+        CloseClipboard();
+        return "";
+    }
+
+    WCHAR* buffer = (WCHAR*)GlobalLock(hData);
+    if (!buffer) {
+        Logger_log(LOGGER_ERROR, "CLIPBOARD: Received clipboard data was NULL");
+        CloseClipboard();
+        gsgl_GetLastError();
+        return "";
+    }
+
+    const char* pszText = (const char*)buffer;
+
+    GlobalUnlock(hData);
+
+    CloseClipboard();
+
+    return pszText;
+}
+GSGL_API void gsgl_SetClipboardText(const char* txt) {
+    if (!OpenClipboard(core.Window.handle)) {
+        Logger_log(LOGGER_ERROR, "CLIPBOARD: Couldn't open clipboard (Set)");
+        gsgl_GetLastError();
+        return;
+    }
+
+    EmptyClipboard();
+
+    // we have to do soome SILLYYY stuff to get it into the clipboard.
+    const size_t len = strlen(txt) + 1;
+    HGLOBAL hMem =  GlobalAlloc(GMEM_MOVEABLE, len);
+    memcpy(GlobalLock(hMem), txt, len);
+    GlobalUnlock(hMem);
+    if (!SetClipboardData(CF_TEXT, hMem)) {
+        Logger_log(LOGGER_ERROR, "CLIPBOARD: Couldn't set clipboard (Set)");
+        gsgl_GetLastError();
+    }
+    CloseClipboard();
 }

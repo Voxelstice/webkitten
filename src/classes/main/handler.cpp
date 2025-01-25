@@ -12,9 +12,33 @@ void Handler::init() {
     tab->init();
     tabs.push_back(tab);
 
-    Tab* cfm = new Tab("https://en.wikipedia.org/wiki/CFM_International_CFM56/");
-    cfm->init();
-    tabs.push_back(cfm);
+    Tab* tab1 = new Tab("https://en.wikipedia.org/wiki/CFM_International_CFM56/");
+    tab1->init();
+    tabs.push_back(tab1);
+
+    Tab* tab2 = new Tab("https://github.com/Voxelstice/tinyweb");
+    tab2->init();
+    tabs.push_back(tab2);
+
+    Tab* tab3 = new Tab("https://www.youtube.com/");
+    tab3->init();
+    tabs.push_back(tab3);
+
+    Tab* tab4 = new Tab("https://www.google.com/");
+    tab4->init();
+    tabs.push_back(tab4);
+
+    Tab* tab5 = new Tab("https://www.geeksforgeeks.org/stdstringinsert-in-c/");
+    tab5->init();
+    tabs.push_back(tab5);
+
+    Tab* tab6 = new Tab("https://stackoverflow.com/questions/14762456/getclipboarddatacf-text");
+    tab6->init();
+    tabs.push_back(tab6);
+
+    Tab* tab7 = new Tab("https://learn.microsoft.com/en-us/windows/win32/dataxchg/using-the-clipboard#copying-information-to-the-clipboard");
+    tab7->init();
+    tabs.push_back(tab7);
 }
 void Handler::update() {
     

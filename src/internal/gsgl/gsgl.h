@@ -210,6 +210,7 @@ GSGL_API uint32_t gsgl_PackColor(Color col); // Packs a color struct into a uint
 GSGL_API void gsgl_InitTimer();
 GSGL_API double gsgl_GetTime();
 GSGL_API void gsgl_WaitTime(double seconds);
+GSGL_API float gsgl_GetFrameTime();
 
 // == INPUT
 // handled in the core too
@@ -248,3 +249,7 @@ GSGL_API Vector2i gsgl_GetTextSize(GSGL_Font font, const char *text, float font_
 
 // == UTILS
 GSGL_API bool gsgl_IsPointInRect(Vector2i point, Vector2i pos, Vector2i size);
+
+// == CLIPBOARD
+GSGL_API const char* gsgl_GetClipboardText();
+GSGL_API void gsgl_SetClipboardText(const char* txt);
