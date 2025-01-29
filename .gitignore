@@ -3,3 +3,4 @@ out
 cacert.pem
 curl32
 curl64
+.vs
