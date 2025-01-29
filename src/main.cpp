@@ -30,6 +30,12 @@ int main() {
 
     Logger_log(LOGGER_INFO, "Application started");
     Logger_log(LOGGER_INFO, "tinyweb - a lightweight browser by Voxelstice");
+    #ifdef BITNESS64
+    Logger_log(LOGGER_INFO, "Running the 64-bit build");
+    #endif
+    #ifdef BITNESS32
+    Logger_log(LOGGER_INFO, "Running the 32-bit build");
+    #endif
     Logger_log(LOGGER_INFO, "----------------------------------------------------------------------------------");
 
     // initialize handlers

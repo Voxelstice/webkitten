@@ -6,7 +6,13 @@ project ("tinyweb")
 file(COPY ${CMAKE_SOURCE_DIR}/assets/ DESTINATION ${CMAKE_BINARY_DIR}/assets/)
 
 # copy important internet stuff
-file(COPY ${CMAKE_SOURCE_DIR}/curl/bin/libcurl-x64.dll DESTINATION ${CMAKE_BINARY_DIR}/)
+if(CMAKE_SIZEOF_VOID_P EQUAL 8) # 64
+file(COPY ${CMAKE_SOURCE_DIR}/curl64/bin/libcurl-x64.dll DESTINATION ${CMAKE_BINARY_DIR}/)
+add_compile_definitions(BITNESS64)
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 4) # 32
+file(COPY ${CMAKE_SOURCE_DIR}/curl32/bin/libcurl.dll DESTINATION ${CMAKE_BINARY_DIR}/)
+add_compile_definitions(BITNESS32)
+endif()
 file(COPY ${CMAKE_SOURCE_DIR}/cacert.pem DESTINATION ${CMAKE_BINARY_DIR}/)
 
 # Set source files
@@ -127,13 +133,23 @@ else()
     # this works better
     # this uses a pre-built curl
 
-    include_directories("${CMAKE_SOURCE_DIR}/curl/include/")
-    target_include_directories(${PROJECT_NAME} PUBLIC curl/)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8) # 64
+        include_directories("${CMAKE_SOURCE_DIR}/curl64/include/")
+        target_include_directories(${PROJECT_NAME} PUBLIC curl64/)
 
-    set(CURL_LIBRARY "${CMAKE_SOURCE_DIR}/curl/lib/libcurl.dll.a")
-    set(CURL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/curl/include/")
+        set(CURL_LIBRARY "${CMAKE_SOURCE_DIR}/curl64/lib/libcurl.dll.a")
+        set(CURL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/curl64/include/")
+        find_package(curl REQUIRED)
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4) # 32
+        include_directories("${CMAKE_SOURCE_DIR}/curl64/include/")
+        target_include_directories(${PROJECT_NAME} PUBLIC curl32/)
 
-    find_package(curl REQUIRED)
+        set(CURL_LIBRARY "${CMAKE_SOURCE_DIR}/curl32/lib/libcurl.dll.a")
+        set(CURL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/curl32/include/")
+        find_package(curl REQUIRED)
+    else()
+
+    endif()
 endif()
 
 # build V8 here

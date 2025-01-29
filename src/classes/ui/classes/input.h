@@ -45,6 +45,7 @@ class Input {
 
         Vector2i pos;
         Vector2i size;
+        Vector2i offset;
 
         int textSize;
 };

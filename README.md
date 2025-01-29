@@ -55,7 +55,8 @@ This would have had an automatic building process but I couldn't quite get OpenS
     - As of writing, this project currently uses libcurl 8.11.1
     - You can get that information in the app logs
 - Click on "curl for 64-bit".
-- Extract the recently-downloaded ZIP file and rename the curl folder to just "curl". Then put it in the project folder.
+- Extract the recently-downloaded ZIP file and rename the curl folder to ``curl64``. Then put it in the project folder.
+- If you're using a 32-bit machine, follow the same steps but select ``32-bit`` instead. And rename the folder to ``curl32``.
 
 ### Certificate
 libcurl requires a certificate file in order to attempt HTTPS connections. [Get it here.](https://curl.se/docs/caextract.html) After you download the certificate file, rename it to ``cacert.pem`` and move it to the project folder.
@@ -64,6 +65,7 @@ libcurl requires a certificate file in order to attempt HTTPS connections. [Get 
 This project uses CMake and Ninja. I develop this on Windows using Visual Studio Code with the ``C/C++``, ``CMake``, and ``CMake Tools`` extensions. Then you need the MSVC compiler (which can be obtained by installing it from Microsoft's official site, or by downloading Visual Studio 2022 and installing "Game development for C++" without anything but MSVC).
 
 If you're using Visual Studio Code, it's as simple as setting the preset to ``x64 Debug`` and just clicking the little play button (``Launch``).
+If you're using 32-bit, select the ``x86 Debug`` preset.
 
 Otherwise, here are the commands that Visual Studio Code runs. Note that the file paths are specific to my setup. I will sort it out to something more user-friendly at one point.
 ```

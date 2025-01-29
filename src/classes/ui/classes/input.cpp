@@ -3,6 +3,8 @@
 
 #include "../../../internal/gsgl/gsgl.h"
 
+// TODO: make this compatible with multi-line
+
 Input::Input(GSGL_Font m_font, int m_textSize, std::string m_defaultText, Color defCol, Color curCol) {
     font = m_font;
     defaultText = m_defaultText;
@@ -16,6 +18,7 @@ Input::Input(GSGL_Font m_font, int m_textSize, std::string m_defaultText, Color 
 
     selectionStart = 0;
     selectionSize = 0;
+    offset = {0, 0};
     focus = false;
 }
 
@@ -23,6 +26,7 @@ void Input::reset() {
     currentText = "";
     selectionStart = 0;
     selectionSize = 0;
+    offset = {0, 0};
     focus = false;
 }
 void Input::update() {
@@ -57,15 +61,15 @@ void Input::update() {
         if (gsgl_IsKeyRepeat(KEY_LEFT) && selectionStart >= 0) {
             if (gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
                 selectionSize--;
-            } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT) && selectionStart > 0) {
-                selectionStart--;
+            } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT) && selectionStart >= 0) {
+                selectionStart -= __max(-selectionSize, 1);
                 selectionSize = 0;
             }
         } else if (gsgl_IsKeyRepeat(KEY_RIGHT) && selectionStart >= 0) {
             if (gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
                 selectionSize++;
             } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
-                selectionStart++;
+                selectionStart += __max(selectionSize, 1);
                 selectionSize = 0;
             }
         }
@@ -108,24 +112,24 @@ void Input::draw() {
 
     gsgl_ScissorsStart(pos.x, pos.y, size.x, size.y);
 
-    gsgl_DrawText(font, txtToUse, pos.x, pos.y, float(textSize), colToUse);
+    gsgl_DrawText(font, txtToUse, pos.x+offset.x, pos.y+offset.y, float(textSize), colToUse);
     if (selectionStart >= 0 && focus == true) {
         if (selectionSize == 0) {
             Vector2i textWidth = gsgl_GetTextSize(font, currentText.substr(0, selectionStart).c_str(), float(textSize));
-            gsgl_Rect(pos.x+textWidth.x+1, pos.y, 1, textSize, currentTextColor);
+            gsgl_Rect(pos.x+textWidth.x+1+offset.x, pos.y+offset.y, 1, textSize, currentTextColor);
         } else if (selectionSize > 0) {
             Vector2i textWidthSelectStart = gsgl_GetTextSize(font, currentText.substr(0, selectionStart).c_str(), float(textSize));
             Vector2i textWidthSelectSize = gsgl_GetTextSize(font, currentText.substr(selectionStart, selectionSize).c_str(), float(textSize));
 
-            gsgl_Rect(pos.x+textWidthSelectStart.x+textWidthSelectSize.x+1, pos.y, 1, textSize, currentTextColor);
-            gsgl_Rect(pos.x+textWidthSelectStart.x+1, pos.y+int(textSize*0.9), textWidthSelectSize.x, int(textSize*0.1), currentTextColor);
+            gsgl_Rect(pos.x+textWidthSelectStart.x+textWidthSelectSize.x+1+offset.x, pos.y+offset.y, 1, textSize, currentTextColor);
+            gsgl_Rect(pos.x+textWidthSelectStart.x+1+offset.x, pos.y+int(textSize*0.9)+offset.y, textWidthSelectSize.x, int(textSize*0.1), currentTextColor);
         } else if (selectionSize < 0) {
             Vector2i textWidthSelect = gsgl_GetTextSize(font, currentText.substr(0, selectionStart+selectionSize).c_str(), float(textSize));
             Vector2i textWidthSelectStart = gsgl_GetTextSize(font, currentText.substr(0, selectionStart).c_str(), float(textSize));
-            Vector2i textWidthSelectSize = gsgl_GetTextSize(font, currentText.substr(selectionStart+selectionSize, selectionSize).c_str(), float(textSize));
+            Vector2i textWidthSelectSize = gsgl_GetTextSize(font, currentText.substr(selectionStart+selectionSize, -selectionSize).c_str(), float(textSize));
 
-            gsgl_Rect(pos.x+textWidthSelect.x+textWidthSelectSize.x+1, pos.y, 1, textSize, currentTextColor);
-            gsgl_Rect(pos.x+textWidthSelectStart.x-textWidthSelectSize.x+1, pos.y+int(textSize*0.9), textWidthSelectSize.x, int(textSize*0.1), currentTextColor);
+            gsgl_Rect(pos.x+textWidthSelect.x+offset.x, pos.y+offset.y, 1, textSize, currentTextColor);
+            gsgl_Rect(pos.x+textWidthSelectStart.x-textWidthSelectSize.x+offset.x, pos.y+int(textSize*0.9)+offset.y, textWidthSelectSize.x, int(textSize*0.1), currentTextColor);
         }
     }
 
@@ -135,15 +139,16 @@ void Input::draw() {
 // selection functions
 void Input::selectionErase() {
     selectionStart++;
+
     if (selectionSize == 0) {
         if (selectionStart > 0) selectionStart--;
         currentText.erase(currentText.begin() + selectionStart);
     } else if (selectionSize > 0) {
-        if (selectionStart > 0) selectionStart--;
+        if (selectionStart > 0 && selectionSize >= currentText.length()) selectionStart--;
         currentText.erase(currentText.begin() + selectionStart, currentText.begin() + selectionStart + selectionSize);
         selectionSize = 0;
     } else if (selectionSize < 0) {
-        if (selectionStart >= currentText.length()) selectionStart--;
+        if (selectionStart > currentText.length()) selectionStart--;
         currentText.erase(currentText.begin() + selectionStart + selectionSize, currentText.begin() + selectionStart);
         selectionStart += selectionSize;
         selectionSize = 0;
