@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
 
 project ("tinyweb")
@@ -6,13 +6,6 @@ project ("tinyweb")
 file(COPY ${CMAKE_SOURCE_DIR}/assets/ DESTINATION ${CMAKE_BINARY_DIR}/assets/)
 
 # copy important internet stuff
-if(CMAKE_SIZEOF_VOID_P EQUAL 8) # 64
-file(COPY ${CMAKE_SOURCE_DIR}/curl64/bin/libcurl-x64.dll DESTINATION ${CMAKE_BINARY_DIR}/)
-add_compile_definitions(BITNESS64)
-elseif(CMAKE_SIZEOF_VOID_P EQUAL 4) # 32
-file(COPY ${CMAKE_SOURCE_DIR}/curl32/bin/libcurl.dll DESTINATION ${CMAKE_BINARY_DIR}/)
-add_compile_definitions(BITNESS32)
-endif()
 file(COPY ${CMAKE_SOURCE_DIR}/cacert.pem DESTINATION ${CMAKE_BINARY_DIR}/)
 
 # Set source files
@@ -98,59 +91,7 @@ set(IMGUI_HEADERS
 
 add_executable(${PROJECT_NAME} ${MAIN_HEADERS} ${MAIN_SOURCE})
 
-# Curl
-# required for networking
-set(BUILD_CURL OFF)
-
-if (BUILD_CURL)
-    # i haven't gotten this to work too well
-    # this builds curl from scratch
-
-    # OpenSSL
-    set(OPENSSL_ROOT_DIR "${CMAKE_SOURCE_DIR}/openssl/")
-    set(OPENSSL_CRYPTO_LIBRARY "${CMAKE_SOURCE_DIR}/openssl/crypto/")
-    set(OPENSSL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/openssl/include/")
-
-    include_directories("${CMAKE_SOURCE_DIR}/openssl/include/")
-    target_include_directories(${PROJECT_NAME} PUBLIC openssl/)
-    add_subdirectory(openssl)
-
-    # libcurl
-    set(CURL_VERSION 8.11.1)
-    find_package(curl QUIET)
-    if (NOT curl_FOUND)
-        FetchContent_Declare(curl
-            URL https://curl.se/download/curl-${CURL_VERSION}.tar.gz
-            DOWNLOAD_EXTRACT_TIMESTAMP true
-            OVERRIDE_FIND_PACKAGE
-        )
-
-        set(CURL_USE_OPENSSL ON)
-        FetchContent_MakeAvailable(curl)
-        find_package(curl)
-    endif()
-else()
-    # this works better
-    # this uses a pre-built curl
-
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8) # 64
-        include_directories("${CMAKE_SOURCE_DIR}/curl64/include/")
-        target_include_directories(${PROJECT_NAME} PUBLIC curl64/)
-
-        set(CURL_LIBRARY "${CMAKE_SOURCE_DIR}/curl64/lib/libcurl.dll.a")
-        set(CURL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/curl64/include/")
-        find_package(curl REQUIRED)
-    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4) # 32
-        include_directories("${CMAKE_SOURCE_DIR}/curl64/include/")
-        target_include_directories(${PROJECT_NAME} PUBLIC curl32/)
-
-        set(CURL_LIBRARY "${CMAKE_SOURCE_DIR}/curl32/lib/libcurl.dll.a")
-        set(CURL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/curl32/include/")
-        find_package(curl REQUIRED)
-    else()
-
-    endif()
-endif()
+find_package(curl REQUIRED)
 
 # build V8 here
 # not now though, get the general web stuff done before doing that

@@ -1,0 +1,16 @@
+{
+  "dependencies": [
+    "backward-cpp",
+    {
+      "name": "curl",
+      "features": [
+        "openssl"
+      ]
+    },
+    "imgui",
+    "nlohmann-json",
+    "openssl",
+    "sdl2",
+    "tinyxml2"
+  ]
+}
