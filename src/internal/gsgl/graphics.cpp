@@ -595,6 +595,7 @@ float gsgl_Lerp(float start, float end, float amount) {
     float result = start + amount * (end - start);
     return result;
 }
+#pragma runtime_checks("", off)
 uint32_t gsgl_HandleAlpha(uint32_t a, uint32_t b) {
     // TODO: consider the first alpha maybe
     float a1 = (float)((a >> 24) & 0xFF);
@@ -628,6 +629,7 @@ uint32_t gsgl_HandleAlpha(uint32_t a, uint32_t b) {
         return a;
     }
 }
+#pragma runtime_checks("", restore)
 Color gsgl_UnpackColor(uint32_t col) {
     Color color = { 0 };
 
