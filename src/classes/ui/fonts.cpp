@@ -37,6 +37,8 @@ void LoadFonts() {
         Logger_log(LOGGER_INFO, "FONTS: ProggyClean.ttf loaded");
     } else {
         Logger_log(LOGGER_ERROR, "FONTS: ProggyClean.ttf didn't load!");
+        Logger_log(LOGGER_ERROR, "This is a integral font of the application and we don't have a embedded variant at the moment.");
+        gsgl_CloseWindow();
     }
 
     proggyTiny = gsgl_LoadFont("assets/fonts/ProggyTiny.ttf");

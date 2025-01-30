@@ -7,8 +7,6 @@
 
 #include <string>
 
-static Input* input;
-
 Renderer::Renderer() {
     // do nothing
 }
@@ -22,10 +20,9 @@ void Renderer::init() {
     Logger_log(LOGGER_INFO, "----------------------------------------------------------------------------------");
 
     LoadFonts();
-    input = new Input(GetFont(PROGGY_CLEAN), 24, "Enter web address", {160, 160, 160, 255}, {255, 255, 255, 255});
 }
 void Renderer::update() {
-    input->update();
+    
 }
 void Renderer::draw() {
     gsgl_PollEvents();
@@ -91,13 +88,15 @@ void Renderer::draw() {
     Vector2i searchSize = {int(gsgl_GetScreenWidth() * 0.7), 24};
 
     gsgl_Rect(searchPos.x, searchPos.y, searchSize.x, searchSize.y, {96, 96, 96, 255});
-    input->setRect(searchPos, searchSize);
-    input->draw();
+    handler->drawInput(searchPos, searchSize);
 
     // draw buttons
     bool historyBackward = ui_BasicButton(GetFont(PROGGY_CLEAN), "B", 16, {4, 32 + 4}, {24, 24}, {255, 255, 255, 255}, {64, 64, 64, 255}, {128, 128, 128, 255}, {160, 160, 160, 255});
     bool historyForward = ui_BasicButton(GetFont(PROGGY_CLEAN), "F", 16, {4 + 32, 32 + 4}, {24, 24}, {255, 255, 255, 255}, {64, 64, 64, 255}, {128, 128, 128, 255}, {160, 160, 160, 255});
     bool reloadPage = ui_BasicButton(GetFont(PROGGY_CLEAN), "R", 16, {4 + 64, 32 + 4}, {24, 24}, {255, 255, 255, 255}, {64, 64, 64, 255}, {128, 128, 128, 255}, {160, 160, 160, 255});
+
+    // draw the page
+    handler->draw();
 
     gsgl_Clear({0, 0, 0, 255});
     gsgl_SwapBuffers();

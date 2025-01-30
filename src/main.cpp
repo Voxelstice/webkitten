@@ -1,6 +1,3 @@
-// NOTE: curl is including windows.h
-// maybe make a file that just wraps some raylib functions into their own functions
-
 // TODO: add https://github.com/Sigil-Ebook/cssparser/tree/master/cssparser
 
 /*
@@ -15,13 +12,14 @@
 
 #include "classes/main/handler.h"
 #include "classes/main/renderer.h"
-#include "classes/main/networkerBarrier.h"
+#include "classes/main/networker.h"
 #include "classes/main/scripter.h"
 
 #include "logger.h"
 
 Handler* handler;
 Renderer* renderer;
+Networker* networker;
 Scripter* scripter;
 
 int main() {
@@ -30,28 +28,34 @@ int main() {
 
     Logger_log(LOGGER_INFO, "Application started");
     Logger_log(LOGGER_INFO, "tinyweb - a lightweight browser by Voxelstice");
+
     #ifdef BITNESS64
     Logger_log(LOGGER_INFO, "Running the 64-bit build");
     #endif
     #ifdef BITNESS32
     Logger_log(LOGGER_INFO, "Running the 32-bit build");
     #endif
+
     Logger_log(LOGGER_INFO, "----------------------------------------------------------------------------------");
 
     // initialize handlers
+    networker = new Networker();
     handler = new Handler();
     renderer = new Renderer();
     scripter = new Scripter();
 
+    networker->init();
     renderer->init();
     handler->init();
-    networker_init();
     scripter->init();
+
+    Logger_log(LOGGER_INFO, "----------------------------------------------------------------------------------");
 
     //----------------------------------------------------------------------------------
 
     while (!renderer->shouldClose()) {
         // Update
+        networker->update();
         handler->update();
         renderer->update();
         scripter->update();

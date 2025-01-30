@@ -12,4 +12,11 @@ class Networker {
         void draw();
 
         void CheckCode(CURLcode code);
+        bool IsReady();
+
+        void SetInstanceDef(CURL* curl);
+        void SetInstanceCert(CURL *curl);
+
+    private:
+        bool ready;
 };

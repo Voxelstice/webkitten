@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
 
 project ("tinyweb")
@@ -7,11 +7,11 @@ file(COPY ${CMAKE_SOURCE_DIR}/assets/ DESTINATION ${CMAKE_BINARY_DIR}/assets/)
 
 # copy important internet stuff
 if(CMAKE_SIZEOF_VOID_P EQUAL 8) # 64
-file(COPY ${CMAKE_SOURCE_DIR}/curl64/bin/libcurl-x64.dll DESTINATION ${CMAKE_BINARY_DIR}/)
-add_compile_definitions(BITNESS64)
+    file(COPY ${CMAKE_SOURCE_DIR}/curl64/bin/libcurl-x64.dll DESTINATION ${CMAKE_BINARY_DIR}/)
+    add_compile_definitions(BITNESS64)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4) # 32
-file(COPY ${CMAKE_SOURCE_DIR}/curl32/bin/libcurl.dll DESTINATION ${CMAKE_BINARY_DIR}/)
-add_compile_definitions(BITNESS32)
+    file(COPY ${CMAKE_SOURCE_DIR}/curl32/bin/libcurl.dll DESTINATION ${CMAKE_BINARY_DIR}/)
+    add_compile_definitions(BITNESS32)
 endif()
 file(COPY ${CMAKE_SOURCE_DIR}/cacert.pem DESTINATION ${CMAKE_BINARY_DIR}/)
 
@@ -36,8 +36,8 @@ set(MAIN_SOURCE
             src/classes/main/handler.cpp
             src/classes/main/renderer.cpp
             src/classes/main/networker.cpp
-            src/classes/main/networkerBarrier.cpp
             src/classes/main/scripter.cpp
+            src/classes/main/request.cpp
         # tab
             src/classes/tab/tab.cpp
         # ui
@@ -67,8 +67,8 @@ set(MAIN_HEADERS
             src/classes/main/handler.h
             src/classes/main/renderer.h
             src/classes/main/networker.h
-            src/classes/main/networkerBarrier.h
             src/classes/main/scripter.h
+            src/classes/main/request.h
         # tab
             src/classes/tab/tab.h
         # ui

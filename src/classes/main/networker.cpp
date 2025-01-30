@@ -2,7 +2,7 @@
 #include <string>
 
 Networker::Networker() {
-    // do nothing
+    ready = false;
 }
 
 void Networker::init() {
@@ -13,6 +13,7 @@ void Networker::init() {
 
     // Attempt to do a version print if possible
     curl_version_info_data *ver;
+
     ver = curl_version_info(CURLVERSION_NOW);
 
     bool httpPresent = false;
@@ -53,6 +54,7 @@ void Networker::init() {
         } else {
             Logger_log(Logger_logType(0), "NETWORK: HTTP is present, HTTPS is present");
         }
+        ready = true;
     }
 
     Logger_log(LOGGER_INFO, "----------------------------------------------------------------------------------");
@@ -68,6 +70,24 @@ void Networker::CheckCode(CURLcode code) {
         str = str + (curl_easy_strerror(code));
         MessageBox(0, str.c_str(), "tinyweb", 0x00000010L);
     }
+}
+bool Networker::IsReady() {
+    return ready;
+}
+
+// Set default properties for a curl instance
+void Networker::SetInstanceDef(CURL* curl) {
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "tinyweb/1.0");
+
+    SetInstanceCert(curl);
+}
+// Set certificate properties for a curl instance
+void Networker::SetInstanceCert(CURL* curl) {
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYSTATUS, 1);
+    curl_easy_setopt(curl, CURLOPT_CAINFO, "cacert.pem");
+    curl_easy_setopt(curl, CURLOPT_CAPATH, "cacert.pem");
+
+    curl_easy_setopt(curl, CURLOPT_CA_CACHE_TIMEOUT, 604800L);
 }
 
 /*#include <curl/curl.h>

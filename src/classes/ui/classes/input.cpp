@@ -20,14 +20,19 @@ Input::Input(GSGL_Font m_font, int m_textSize, std::string m_defaultText, Color 
     selectionSize = 0;
     offset = {0, 0};
     focus = false;
+    entered = false;
 }
 
-void Input::reset() {
-    currentText = "";
+void Input::reset(bool fromEnter) {
     selectionStart = 0;
     selectionSize = 0;
     offset = {0, 0};
     focus = false;
+
+    if (fromEnter == false) {
+        currentText = "";
+        entered = false;
+    }
 }
 void Input::update() {
     bool hovered = gsgl_IsPointInRect(gsgl_GetMousePosition(), pos, size);
@@ -92,11 +97,26 @@ void Input::update() {
             }
         }
 
+        if (gsgl_IsKeyPressed(KEY_ENTER)) {
+            reset(true);
+            entered = true;
+        }
+
+        // handle selection
         if (selectionStart < 0) selectionStart = 0;
         if (selectionStart >= textLength) selectionStart = textLength;
 
         if (selectionSize >= textLength-selectionStart) selectionSize = textLength-selectionStart;
         if (selectionSize < -selectionStart) selectionSize = -selectionStart;
+
+        // handle offseting
+        // TODO: make the offsetting only happen when the selection is moved
+        Vector2i textWidth = gsgl_GetTextSize(font, currentText.substr(0, selectionStart).c_str(), float(textSize));
+        if (textWidth.x >= size.x) {
+            offset = {-(textWidth.x - size.x - 1), 0};
+        } else {
+            offset = {0, 0};
+        }
     } else {
         selectionStart = 0;
         selectionSize = 0;
@@ -112,6 +132,7 @@ void Input::draw() {
 
     gsgl_ScissorsStart(pos.x, pos.y, size.x, size.y);
 
+    // TODO: Multi-line rendering
     gsgl_DrawText(font, txtToUse, pos.x+offset.x, pos.y+offset.y, float(textSize), colToUse);
     if (selectionStart >= 0 && focus == true) {
         if (selectionSize == 0) {
@@ -169,6 +190,9 @@ void Input::setRect(Vector2i m_pos, Vector2i m_size) {
 
 void Input::setDefaultText(std::string txt) {
     defaultText = txt;
+}
+void Input::setText(std::string txt) {
+    currentText = txt;
 }
 std::string Input::getText() {
     return currentText;

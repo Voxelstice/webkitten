@@ -126,8 +126,9 @@ void gsgl_DrawText(GSGL_Font font, const char* text, int x, int y, float font_si
         cursor_x += (int)(advance * scale);
 
         // do newline aswell
-        if (p == "\n") {
-            cursor_y += (int)(line_gap * scale);
+        if (codepoint == 10) { // \n
+            cursor_x = x;
+            cursor_y += (int)((ascent - descent + line_gap) * scale);
         }
 
         stbtt_FreeBitmap(bitmap, NULL);

@@ -8,7 +8,7 @@ class Input {
     public:
         Input(GSGL_Font m_font, int m_textSize, std::string m_defaultText, Color defCol, Color curCol);
 
-        void reset();
+        void reset(bool fromEnter);
         void update();
         void draw();
 
@@ -21,9 +21,12 @@ class Input {
         void setRect(Vector2i m_pos, Vector2i m_size);
 
         void setDefaultText(std::string txt);
+        void setText(std::string txt);
         std::string getText();
 
         void doFocus(bool state);
+
+        bool enterPressed();
 
         // color functions
 
@@ -48,4 +51,6 @@ class Input {
         Vector2i offset;
 
         int textSize;
+
+        bool entered;
 };

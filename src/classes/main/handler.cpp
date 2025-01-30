@@ -1,5 +1,7 @@
 #include "handler.h"
 
+#include "../ui/fonts.h"
+
 Handler::Handler() {
     // do nothing
 }
@@ -39,16 +41,32 @@ void Handler::init() {
     Tab* tab7 = new Tab("https://learn.microsoft.com/en-us/windows/win32/dataxchg/using-the-clipboard#copying-information-to-the-clipboard");
     tab7->init();
     tabs.push_back(tab7);
+
+    // init input
+    input = new Input(GetFont(PROGGY_CLEAN), 24, "Enter web address", {160, 160, 160, 255}, {255, 255, 255, 255});
 }
 void Handler::update() {
-    
+    input->update();
+    for (int i = 0; i < tabs.size(); i++) {
+        tabs[i]->update();
+    }
+}
+void Handler::draw() {
+    int tabId = getTab(tabFocus);
+    if (tabId != -1) {
+        tabs[tabId]->draw();
+    }
 }
 
 void Handler::focusTab(int id) {
     for (int i = 0; i < tabs.size(); i++) {
         if (tabs[i]->getId() == id) {
+            tabs[i]->setFocusState(true);
+            input->setText(tabs[i]->getAddress());
             tabFocus = id;
             return;
+        } else {
+            tabs[i]->setFocusState(false);
         }
     }
     tabFocus = -1;
@@ -60,4 +78,17 @@ void Handler::closeTab(int id) {
             tabs.erase(tabs.begin() + i);
         }
     }
+}
+int Handler::getTab(int id) {
+    for (int i = 0; i < tabs.size(); i++) {
+        if (tabs[i]->getId() == id) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void Handler::drawInput(Vector2i pos, Vector2i size) {
+    input->setRect(pos, size);
+    input->draw();
 }
