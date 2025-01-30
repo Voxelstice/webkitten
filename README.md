@@ -32,7 +32,7 @@ There is some basic UI, with tabs that can be clicked on and closed. Some button
         - [ ] Get window creation working
         - [ ] Software renderer
         - [ ] Hardware renderer
-    - [ ] Draw the received HTML data from networking
+    - [X] Draw the received HTML data from networking
 - [ ] Get a basic subset of HTML working
     - TODO
 - [ ] Linux port of some stuff
