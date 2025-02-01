@@ -92,12 +92,15 @@ Some things to keep in mind:
 #include <chrono>
 #include <time.h>
 #include <cmath>
+#include <iostream>
 
 #ifdef _WIN32
 #include <comdef.h>
 #include <windows.h>
 #include <windowsx.h>
 #else
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <string.h> // for some weird reason you need to include this for memset
 #endif
 
@@ -120,7 +123,20 @@ typedef struct Win32Core {
 Win32Core platformCore = { 0 };
 #else
 typedef struct LinuxCore {
-    int placeholder;
+    Display* display;
+    Window window;
+
+    bool destroyed;
+
+    struct {
+        XImage* image;
+
+        int depth;
+        XVisualInfo vinfo;
+        XGCValues gcv;
+        unsigned long gcm;
+        GC context;
+    } Graphics;
 } LinuxCore;
 LinuxCore platformCore = { 0 };
 #endif
@@ -257,7 +273,7 @@ void gsgl_InitWindow(int width, int height, const char *title) {
     platformCore.instance = GetModuleHandle(0);
     platformCore.Window.msg = { };
     #else
-
+    platformCore.destroyed = false;
     #endif
 
     core.ready = false;
@@ -304,7 +320,7 @@ void gsgl_InitWindow(int width, int height, const char *title) {
     // create window
     Logger_log(LOGGER_INFO, "GRAPHICS: - Creating window");
     platformCore.Window.handle = CreateWindowEx(
-        0, className, "tinyweb", WS_OVERLAPPEDWINDOW,
+        0, className, title, WS_OVERLAPPEDWINDOW,
         0, 0, width, height,
         NULL, NULL, platformCore.instance, NULL
     );
@@ -324,6 +340,76 @@ void gsgl_InitWindow(int width, int height, const char *title) {
     platformCore.Window.cursor = LoadCursor(NULL, IDC_ARROW);
     SetCursor(platformCore.Window.cursor);
     #else
+    // open display
+    Logger_log(LOGGER_INFO, "GRAPHICS: - Opening display");
+    platformCore.display = XOpenDisplay(NULL);
+    if (platformCore.display == NULL) {
+        gsgl_GetLastError();
+        return;
+    } else {
+        Logger_log(LOGGER_INFO, "GRAPHICS: - Display successfully opened");
+    }
+
+    // we need a bit more setup for graphics aswell
+    // https://stackoverflow.com/a/64758878
+    XVisualInfo *visual_list;
+    XVisualInfo visual_template;
+    Visual *visual;
+
+    int nxvisuals;
+
+    Logger_log(LOGGER_INFO, "GRAPHICS: - Preparing window graphics");
+    visual_template.screen = DefaultScreen(platformCore.display);
+    visual_list = XGetVisualInfo(platformCore.display, VisualScreenMask, &visual_template, &nxvisuals);
+
+    if (!XMatchVisualInfo(platformCore.display, XDefaultScreen(platformCore.display), 24, TrueColor, &platformCore.Graphics.vinfo)) {
+        Logger_log(LOGGER_ERROR, "GRAPHICS: No such visual graphics");
+        return;
+    }
+
+    XSync(platformCore.display, true);
+
+    visual = platformCore.Graphics.vinfo.visual;
+    platformCore.Graphics.depth = platformCore.Graphics.vinfo.depth;
+
+    XSetWindowAttributes attrs;
+    attrs.colormap = XCreateColormap(platformCore.display, XDefaultRootWindow(platformCore.display), visual, AllocNone);
+    attrs.background_pixel = 0;
+    attrs.border_pixel = 0;
+
+    // create window
+    Logger_log(LOGGER_INFO, "GRAPHICS: - Creating window");
+    platformCore.window = XCreateWindow(
+        platformCore.display, DefaultRootWindow(platformCore.display),
+        50, 50, width, height, 
+        0, platformCore.Graphics.depth, InputOutput, visual, CWBackPixel | CWColormap | CWBorderPixel, &attrs
+    );
+    XStoreName(platformCore.display, platformCore.window, title);
+    
+    if (platformCore.window == NULL) {
+        gsgl_GetLastError();
+        return;
+    } else {
+        Logger_log(LOGGER_INFO, "GRAPHICS: - Window successfully created");
+    }
+
+    XSelectInput(platformCore.display, platformCore.window, StructureNotifyMask | KeyPressMask);
+
+    // final graphics steps
+    platformCore.Graphics.gcm = GCGraphicsExposures;
+    platformCore.Graphics.gcv.graphics_exposures = 0;
+    platformCore.Graphics.context = XCreateGC(
+        platformCore.display, DefaultRootWindow(platformCore.display), 
+        platformCore.Graphics.gcm, &platformCore.Graphics.gcv
+    );
+
+    // show
+    Logger_log(LOGGER_INFO, "GRAPHICS: - Showing window");
+    XMapWindow(platformCore.display, platformCore.window);
+	
+    // need to do this to listen to delete window events
+    Atom wmDelete = XInternAtom(platformCore.display, "WM_DELETE_WINDOW", True);
+    XSetWMProtocols(platformCore.display, platformCore.window, &wmDelete, 1);
 
     #endif
 
@@ -416,7 +502,24 @@ void gsgl_PollEvents() {
         DispatchMessage(&platformCore.Window.msg);
     }
     #else
-
+    XEvent event;
+    XNextEvent(platformCore.display, &event);
+    switch (event.type) {
+        case ConfigureNotify: {
+            XConfigureEvent* config = (XConfigureEvent *)&event;
+            gi_ResizeWindow((int)config->width, (int)config->height);
+            break;
+        }
+        case ClientMessage: {
+            XClientMessageEvent *Event = (XClientMessageEvent *) &event;
+            Atom wmDelete = XInternAtom(platformCore.display, "WM_DELETE_WINDOW", True);
+            if((Atom)Event->data.l[0] == wmDelete) {
+                platformCore.destroyed = true;
+                gsgl_CloseWindow();
+            }
+            break;
+        }
+    }
     #endif
 }
 
@@ -430,7 +533,11 @@ void gsgl_CloseWindow() {
     #ifdef _WIN32
     PostQuitMessage(0);
     #else
-
+    if (platformCore.destroyed == false) {
+        platformCore.destroyed = true;
+        if (platformCore.window != NULL && platformCore.display != NULL) XDestroyWindow(platformCore.display, platformCore.window);
+        if (platformCore.display != NULL) XCloseDisplay(platformCore.display);
+    }
     #endif
 }
 
@@ -482,7 +589,16 @@ void gsgl_Draw() {
     StretchDIBits(hdc, 0, 0, core.Window.width, core.Window.height, 0, 0, core.Window.width, core.Window.height, core.Graphics.buffer2, &bmi, DIB_RGB_COLORS, SRCCOPY);
     ReleaseDC(core.Window.handle, hdc);
     #else
-
+    if (
+        platformCore.Graphics.image != NULL && platformCore.Graphics.context && 
+        platformCore.Graphics.image->width == core.Window.width && platformCore.Graphics.image->height == core.Window.height
+    ) {
+        XPutImage(
+            platformCore.display, platformCore.window, 
+            platformCore.Graphics.context, platformCore.Graphics.image, 
+            0, 0, 0, 0, core.Window.width, core.Window.height
+        );
+    }
     #endif
 }
 void gsgl_SwapBuffers() {
@@ -495,6 +611,15 @@ void gsgl_SwapBuffers() {
         core.Graphics.buffer2[i] = core.Graphics.buffer1[i];
         core.Graphics.buffer1[i] = core.Graphics.swapBufferClear;
     }
+
+    // weird and sloppy way of swapping buffers in linux, but this does for now
+    #ifndef _WIN32
+    XFree(platformCore.Graphics.image);
+    platformCore.Graphics.image = XCreateImage(
+        platformCore.display, platformCore.Graphics.vinfo.visual, platformCore.Graphics.depth, ZPixmap, 
+        0, (char*)core.Graphics.buffer2, core.Window.width, core.Window.height, 8, core.Window.width*4
+    );
+    #endif
 
     gsgl_WriteBoxReset();
 
@@ -734,6 +859,13 @@ void gi_InitBuffers() {
         if (core.Graphics.buffersInited == true) free(core.Graphics.buffer2);
         core.Graphics.buffer2 = (uint32_t*) malloc(core.Window.width * core.Window.height * sizeof(uint32_t));
         memset(core.Graphics.buffer2, 0, core.Window.width * core.Window.height * sizeof(uint32_t));
+
+        #ifndef _WIN32
+        platformCore.Graphics.image = XCreateImage(
+            platformCore.display, platformCore.Graphics.vinfo.visual, platformCore.Graphics.depth, ZPixmap, 
+            0, (char*)core.Graphics.buffer2, core.Window.width, core.Window.height, 8, core.Window.width*4
+        );
+        #endif
 
         if (core.Graphics.buffersInited == false)
             core.Graphics.buffersInited = true;
