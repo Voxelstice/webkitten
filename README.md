@@ -19,7 +19,7 @@ There is some basic UI, with tabs that can be clicked on and closed. Some button
 - [libcurl](https://curl.se/libcurl/) - [curl license](https://curl.se/docs/copyright.html)
 
 # Roadmap
-- [ ] Get networking and graphics working
+- [X] Get networking and graphics working
     - [X] win32
         - [X] Get window creation working
         - [X] Input
@@ -33,7 +33,6 @@ There is some basic UI, with tabs that can be clicked on and closed. Some button
     - [X] Draw the received HTML data from networking
 - [ ] Get a basic subset of HTML working
     - TODO
-- [ ] Linux port of some stuff
 - [ ] Get the full subset of HTML working
     - TODO
 - [ ] Get the V8 JavaScript engine working
@@ -74,7 +73,7 @@ cmake --build C:/Stuff/programming/c++/tinyweb/out/build/x64-debug --parallel 6 
 ## Linux
 This is a LOT easier since you have a package manager out of the box. But first, make sure you install the following packages:
 ```
-sudo apt install pkg-config g++ cmake git libx11-dev
+sudo apt install pkg-config g++ cmake ninja git libx11-dev
 ```
 
 ### libcurl
