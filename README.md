@@ -22,15 +22,13 @@ There is some basic UI, with tabs that can be clicked on and closed. Some button
 - [ ] Get networking and graphics working
     - [X] win32
         - [X] Get window creation working
+        - [X] Input
         - [X] Software renderer
-            - [X] Basic shapes
-            - [X] Text
         - [ ] Hardware renderer
-            - [ ] Basic shapes
-            - [ ] Text
-    - [ ] X11
+    - [X] X11
         - [X] Get window creation working
-        - [ ] Software renderer
+        - [X] Input
+        - [X] Software renderer
         - [ ] Hardware renderer
     - [X] Draw the received HTML data from networking
 - [ ] Get a basic subset of HTML working

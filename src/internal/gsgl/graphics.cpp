@@ -68,6 +68,8 @@ Now here's a couple of quirks:
 
 - (plans) OpenGL ES is going to be used for hardware acceleration.
 
+- X11 support is a bit weird.
+
 Optimizations:
 - The clear thing. I've mentioned it above.
 
@@ -125,6 +127,7 @@ Win32Core platformCore = { 0 };
 typedef struct LinuxCore {
     Display* display;
     Window window;
+    unsigned int eventMask;
 
     bool destroyed;
 
@@ -215,6 +218,9 @@ typedef struct GraphicsCore {
 GraphicsCore core = { 0 };
 
 // Internal functions
+#ifndef _WIN32
+GSGL_Key gi_XSymToGSGLKey(KeySym sym);
+#endif
 void gi_UpdateSettings();
 void gi_ResizeWindow(int width, int height);
 void gi_InitBuffers();
@@ -393,7 +399,8 @@ void gsgl_InitWindow(int width, int height, const char *title) {
         Logger_log(LOGGER_INFO, "GRAPHICS: - Window successfully created");
     }
 
-    XSelectInput(platformCore.display, platformCore.window, StructureNotifyMask | KeyPressMask);
+    platformCore.eventMask = StructureNotifyMask | ButtonPressMask | ButtonReleaseMask | KeyPressMask | KeyReleaseMask;
+    XSelectInput(platformCore.display, platformCore.window, platformCore.eventMask);
 
     // final graphics steps
     platformCore.Graphics.gcm = GCGraphicsExposures;
@@ -502,22 +509,71 @@ void gsgl_PollEvents() {
         DispatchMessage(&platformCore.Window.msg);
     }
     #else
-    XEvent event;
-    XNextEvent(platformCore.display, &event);
-    switch (event.type) {
-        case ConfigureNotify: {
-            XConfigureEvent* config = (XConfigureEvent *)&event;
-            gi_ResizeWindow((int)config->width, (int)config->height);
-            break;
-        }
-        case ClientMessage: {
-            XClientMessageEvent *Event = (XClientMessageEvent *) &event;
-            Atom wmDelete = XInternAtom(platformCore.display, "WM_DELETE_WINDOW", True);
-            if((Atom)Event->data.l[0] == wmDelete) {
-                platformCore.destroyed = true;
-                gsgl_CloseWindow();
+
+    if (XPending(platformCore.display)) {
+        XEvent event;
+        XNextEvent(platformCore.display, &event);
+        switch (event.type) {
+            // Resizing
+            case ConfigureNotify: {
+                XConfigureEvent* config = (XConfigureEvent*)&event;
+                gi_ResizeWindow(config->width, config->height);
+                break;
             }
-            break;
+
+            // Input
+            // since X11 handles keycodes in a different breed we need to translate the layouts to our own layout
+            case KeyPress: {
+                XKeyPressedEvent* key = (XKeyPressedEvent*)&event;
+                GSGL_Key gsglKey = gi_XSymToGSGLKey(XKeycodeToKeysym(platformCore.display, key->keycode, 0));
+                core.Input.keysNew[(int)gsglKey] = true;
+                break;
+            }
+            case KeyRelease: {
+                XKeyReleasedEvent* key = (XKeyReleasedEvent*)&event;
+                GSGL_Key gsglKey = gi_XSymToGSGLKey(XKeycodeToKeysym(platformCore.display, key->keycode, 0));
+                core.Input.keysNew[(int)gsglKey] = false;
+                break;
+            }
+
+            // mouse buttons
+            case ButtonPress: {
+                XButtonPressedEvent* btn = (XButtonPressedEvent*)&event;
+                if (btn->button == Button1) core.Input.mouseNew.leftMouseButton = true;
+                if (btn->button == Button2) core.Input.mouseNew.middleMouseButton = true;
+                if (btn->button == Button3) core.Input.mouseNew.rightMouseButton = true;
+                break;
+            }
+            case ButtonRelease: {
+                XButtonReleasedEvent* btn = (XButtonReleasedEvent*)&event;
+                if (btn->button == Button1) core.Input.mouseNew.leftMouseButton = false;
+                if (btn->button == Button2) core.Input.mouseNew.middleMouseButton = false;
+                if (btn->button == Button3) core.Input.mouseNew.rightMouseButton = false;
+                break;
+            }
+
+            // causes performance problems
+            /*case MotionNotify: {
+                XPointerMovedEvent* pointer = (XPointerMovedEvent*)&event;
+                core.Input.mouseNew.mouseX = pointer->x;
+                core.Input.mouseNew.mouseY = pointer->y;
+                break;
+            }*/
+
+            // Used for handling closing properly
+            case ClientMessage: {
+                XClientMessageEvent *Event = (XClientMessageEvent *) &event;
+                Atom wmDelete = XInternAtom(platformCore.display, "WM_DELETE_WINDOW", True);
+                if((Atom)Event->data.l[0] == wmDelete) {
+                    platformCore.destroyed = true;
+                    gsgl_CloseWindow();
+                }
+                break;
+            }
+
+            default: {
+                break;
+            }
         }
     }
     #endif
@@ -611,15 +667,6 @@ void gsgl_SwapBuffers() {
         core.Graphics.buffer2[i] = core.Graphics.buffer1[i];
         core.Graphics.buffer1[i] = core.Graphics.swapBufferClear;
     }
-
-    // weird and sloppy way of swapping buffers in linux, but this does for now
-    #ifndef _WIN32
-    XFree(platformCore.Graphics.image);
-    platformCore.Graphics.image = XCreateImage(
-        platformCore.display, platformCore.Graphics.vinfo.visual, platformCore.Graphics.depth, ZPixmap, 
-        0, (char*)core.Graphics.buffer2, core.Window.width, core.Window.height, 8, core.Window.width*4
-    );
-    #endif
 
     gsgl_WriteBoxReset();
 
@@ -827,6 +874,106 @@ uint32_t gsgl_PackColor(Color col) {
 }
 
 // Internal functions
+#ifndef _WIN32
+
+// WARNING: Right variants of some keys will return left variant (Shift, Control, Alt, Super)
+GSGL_Key gi_XSymToGSGLKey(KeySym sym) {
+    switch (sym) {
+        case XK_BackSpace: return KEY_BACKSPACE;
+        case XK_Tab: return KEY_TAB;
+        case XK_ISO_Enter: return KEY_ENTER;
+        case XK_Shift_L: return KEY_LEFT_SHIFT;
+        case XK_Shift_R: return KEY_LEFT_SHIFT;
+        case XK_Control_L: return KEY_LEFT_CONTROL;
+        case XK_Control_R: return KEY_LEFT_CONTROL;
+        case XK_Alt_L: return KEY_LEFT_ALT;
+        case XK_Alt_R: return KEY_LEFT_ALT;
+        case XK_Pause: return KEY_PAUSE;
+        case XK_Caps_Lock: return KEY_CAPS_LOCK;
+        case XK_Escape: return KEY_ESCAPE;
+        case XK_space: return KEY_SPACE;
+        case XK_Page_Up: return KEY_PAGE_UP;
+        case XK_Page_Down: return KEY_PAGE_DOWN;
+        case XK_End: return KEY_END;
+        case XK_Home: return KEY_HOME;
+        case XK_Left: return KEY_LEFT;
+        case XK_Up: return KEY_UP;
+        case XK_Right: return KEY_RIGHT;
+        case XK_Down: return KEY_DOWN;
+        case XK_Insert: return KEY_INSERT;
+        case XK_Delete: return KEY_DELETE;
+
+        case XK_0: return KEY_ZERO;
+        case XK_1: return KEY_ONE;
+        case XK_2: return KEY_TWO;
+        case XK_3: return KEY_THREE;
+        case XK_4: return KEY_FOUR;
+        case XK_5: return KEY_FIVE;
+        case XK_6: return KEY_SIX;
+        case XK_7: return KEY_SEVEN;
+        case XK_8: return KEY_EIGHT;
+        case XK_9: return KEY_NINE;
+
+        case XK_A: return KEY_A;
+        case XK_B: return KEY_B;
+        case XK_C: return KEY_C;
+        case XK_D: return KEY_D;
+        case XK_E: return KEY_E;
+        case XK_F: return KEY_F;
+        case XK_G: return KEY_G;
+        case XK_H: return KEY_H;
+        case XK_I: return KEY_I;
+        case XK_J: return KEY_J;
+        case XK_K: return KEY_K;
+        case XK_L: return KEY_L;
+        case XK_M: return KEY_M;
+        case XK_N: return KEY_N;
+        case XK_O: return KEY_O;
+        case XK_P: return KEY_P;
+        case XK_Q: return KEY_Q;
+        case XK_R: return KEY_R;
+        case XK_S: return KEY_S;
+        case XK_T: return KEY_T;
+        case XK_U: return KEY_U;
+        case XK_V: return KEY_V;
+        case XK_W: return KEY_W;
+        case XK_X: return KEY_X;
+        case XK_Y: return KEY_Y;
+        case XK_Z: return KEY_Z;
+
+        case XK_Super_L: return KEY_LEFT_SUPER;
+        case XK_Super_R: return KEY_LEFT_SUPER;
+
+        case XK_F1: return KEY_F1;
+        case XK_F2: return KEY_F2;
+        case XK_F3: return KEY_F3;
+        case XK_F4: return KEY_F4;
+        case XK_F5: return KEY_F5;
+        case XK_F6: return KEY_F6;
+        case XK_F7: return KEY_F7;
+        case XK_F8: return KEY_F8;
+        case XK_F9: return KEY_F9;
+        case XK_F10: return KEY_F10;
+        case XK_F11: return KEY_F11;
+        case XK_F12: return KEY_F12;
+        case XK_Scroll_Lock: return KEY_SCROLL_LOCK;
+
+        case XK_semicolon: return KEY_SEMICOLON;
+        case XK_equal: return KEY_EQUAL;
+        case XK_comma: return KEY_COMMA;
+        case XK_minus: return KEY_MINUS;
+        case XK_period: return KEY_PERIOD;
+        case XK_slash: return KEY_SLASH;
+        case XK_grave: return KEY_GRAVE;
+        case XK_bracketleft: return KEY_LEFT_BRACKET;
+        case XK_backslash: return KEY_BACKSLASH;
+        case XK_bracketright: return KEY_RIGHT_BRACKET;
+        case XK_apostrophe: return KEY_APOSTROPHE;
+        default: break;
+    }
+    return KEY_NULL;
+}
+#endif
 void gi_UpdateSettings() {
     // update some stuff. not a lot needs to be updated here currently
     // this seems to fire somewhat frequently but its kind of weird when it updates
@@ -845,10 +992,12 @@ void gi_UpdateSettings() {
     #endif
 }
 void gi_ResizeWindow(int width, int height) {
-    core.Window.width = width;
-    core.Window.height = height;
+    if (core.Window.width != width || core.Window.height != height) { // check if it's the same, otherwise do not reinitialize buffers
+        core.Window.width = width;
+        core.Window.height = height;
 
-    gi_InitBuffers();
+        gi_InitBuffers();
+    }
 }
 void gi_InitBuffers() {
     if (core.Graphics.software == true) {
@@ -995,23 +1144,19 @@ LARGE_INTEGER GetTimerFrequency() {
 void gsgl_InitTimer() {
     Logger_log(LOGGER_INFO, "GRAPHICS: Initiating timer");
 
-    // Setting a higher resolution can improve the accuracy of time-out intervals in wait functions
-    // However, it can also reduce overall system performance, because the thread scheduler switches tasks more often
-    // High resolutions can also prevent the CPU power management system from entering power-saving modes
-    // Setting a higher resolution does not improve the accuracy of the high-resolution performance counter
     #if defined(_WIN32) && defined(SUPPORT_WINMM_HIGHRES_TIMER) && !defined(SUPPORT_BUSY_WAIT_LOOP)
-    GetTimerFrequency(); // this literally just initializes it lol
+    GetTimerFrequency();
     #endif
 
     #if defined(__linux__)
     struct timespec now = { 0 };
 
-    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) { // Success
+    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
         core.Time.base = (unsigned long long int)now.tv_sec*1000000000LLU + (unsigned long long int)now.tv_nsec;
     }
     #endif
 
-    core.Time.previous = gsgl_GetTime();     // Get time as double
+    core.Time.previous = gsgl_GetTime();
 }
 
 double gsgl_GetTime() {
@@ -1021,9 +1166,10 @@ double gsgl_GetTime() {
 	QueryPerformanceCounter(&counter);
     return (double) (counter.QuadPart / (double) frequency.QuadPart);
     #else
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return (uint64_t) ts.tv_sec * 1000000000 + (uint64_t) ts.tv_nsec;
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) { // Success
+        return (double)now.tv_sec*1000000000LLU + (double)now.tv_nsec;
+    }
     #endif
 }
 
@@ -1074,6 +1220,13 @@ float gsgl_GetFrameTime() {
 // input
 // mouse
 Vector2i gsgl_GetMousePosition() {
+    #ifndef _WIN32
+    Window child_win, root_win;
+    int rootX, rootY;
+    unsigned int mask;
+    XQueryPointer(platformCore.display, platformCore.window, &child_win, &root_win, &rootX, &rootY, &core.Input.mouseNew.mouseX, &core.Input.mouseNew.mouseY, &mask);
+    #endif
+
     return {core.Input.mouseNew.mouseX, core.Input.mouseNew.mouseY};
 }
 
