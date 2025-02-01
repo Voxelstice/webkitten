@@ -1,5 +1,6 @@
 #include "input.h"
 #include <string>
+#include <cmath>
 
 #include "../../../internal/gsgl/gsgl.h"
 
@@ -67,14 +68,14 @@ void Input::update() {
             if (gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
                 selectionSize--;
             } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT) && selectionStart >= 0) {
-                selectionStart -= __max(-selectionSize, 1);
+                selectionStart -= std::max(-selectionSize, 1);
                 selectionSize = 0;
             }
         } else if (gsgl_IsKeyRepeat(KEY_RIGHT) && selectionStart >= 0) {
             if (gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
                 selectionSize++;
             } else if (!gsgl_IsKeyDown(KEY_LEFT_SHIFT)) {
-                selectionStart += __max(selectionSize, 1);
+                selectionStart += std::max(selectionSize, 1);
                 selectionSize = 0;
             }
         }

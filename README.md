@@ -74,10 +74,16 @@ cmake --build C:/Stuff/programming/c++/tinyweb/out/build/x64-debug --parallel 6 
 ```
 
 ## Linux
-TODO
+This is a LOT easier since you have a package manager out of the box. But first, make sure you install the following packages:
+```
+sudo apt install pkg-config g++ cmake git
+```
 
 ### libcurl
-TODO
+You can simply install ``libcurl4-openssl-dev`` via ``apt`` or whatever package manager you have.
+```
+sudo apt install libcurl4-openssl-dev
+```
 
 ### Starting the build
 TODO

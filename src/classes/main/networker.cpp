@@ -68,7 +68,11 @@ void Networker::CheckCode(CURLcode code) {
         Logger_logE("NETWORK: libcurl error: %s", curl_easy_strerror(code));
         std::string str = "libcurl error: ";
         str = str + (curl_easy_strerror(code));
+        #ifdef _WIN32
         MessageBox(0, str.c_str(), "tinyweb", 0x00000010L);
+        #else
+
+        #endif
     }
 }
 bool Networker::IsReady() {

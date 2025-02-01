@@ -1,5 +1,3 @@
-#include <windows.h>
-
 #include "ui.h"
 #include "../../internal/gsgl/gsgl.h"
 #include "../../logger.h"

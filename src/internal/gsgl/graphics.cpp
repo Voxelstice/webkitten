@@ -91,9 +91,15 @@ Some things to keep in mind:
 #include <cstdint>
 #include <chrono>
 #include <time.h>
+#include <cmath>
+
+#ifdef _WIN32
 #include <comdef.h>
 #include <windows.h>
 #include <windowsx.h>
+#else
+#include <string.h> // for some weird reason you need to include this for memset
+#endif
 
 #include "../../logger.h"
 #include "gsgl.h"
@@ -102,16 +108,26 @@ Some things to keep in mind:
 #define SUPPORT_PARTIALBUSY_WAIT_LOOP    1
 #define KEYBOARD_KEYS                    512
 
-typedef struct GraphicsCore {
+#ifdef _WIN32
+typedef struct Win32Core {
     HINSTANCE instance;
-    bool ready;
     struct {
-        // windows stuff
         HWND handle;
         MSG msg;
         HCURSOR cursor;
+    } Window;
+} Win32Core;
+Win32Core platformCore = { 0 };
+#else
+typedef struct LinuxCore {
+    int placeholder;
+} LinuxCore;
+LinuxCore platformCore = { 0 };
+#endif
 
-        // our stuff
+typedef struct GraphicsCore {
+    bool ready;
+    struct {
         int width;
         int height;
 
@@ -187,6 +203,7 @@ void gi_UpdateSettings();
 void gi_ResizeWindow(int width, int height);
 void gi_InitBuffers();
 
+#ifdef _WIN32
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 void gsgl_GetLastError() { 
@@ -216,6 +233,11 @@ void gsgl_GetLastError() {
     
     //ExitProcess(dw); 
 }
+#else
+void gsgl_GetLastError() {
+    // TODO: implement this
+}
+#endif
 
 // Core library functions
 void gsgl_SoftwareRender() {
@@ -231,10 +253,15 @@ void gsgl_InitWindow(int width, int height, const char *title) {
     Logger_log(LOGGER_INFO, "GRAPHICS: Initializing internal graphics library");
 
     // initialize core
-    core.instance = GetModuleHandle(0);
+    #ifdef _WIN32
+    platformCore.instance = GetModuleHandle(0);
+    platformCore.Window.msg = { };
+    #else
+
+    #endif
+
     core.ready = false;
 
-    core.Window.msg = { };
     core.Window.closing = false;
 
     core.Graphics.frameRate = 60;
@@ -260,14 +287,15 @@ void gsgl_InitWindow(int width, int height, const char *title) {
 
     gi_UpdateSettings();
 
-    // set class  name
+    #ifdef _WIN32
+    // set class name
     const char* className = "tinyweb";
 
     // register class
     WNDCLASS winClass = { };
 
     winClass.lpfnWndProc = WindowProc;
-    winClass.hInstance = core.instance;
+    winClass.hInstance = platformCore.instance;
     winClass.lpszClassName = className;
 
     Logger_log(LOGGER_INFO, "GRAPHICS: - Registering class");
@@ -275,13 +303,13 @@ void gsgl_InitWindow(int width, int height, const char *title) {
 
     // create window
     Logger_log(LOGGER_INFO, "GRAPHICS: - Creating window");
-    core.Window.handle = CreateWindowEx(
+    platformCore.Window.handle = CreateWindowEx(
         0, className, "tinyweb", WS_OVERLAPPEDWINDOW,
         0, 0, width, height,
-        NULL, NULL, core.instance, NULL
+        NULL, NULL, platformCore.instance, NULL
     );
 
-    if (core.Window.handle == NULL) {
+    if (platformCore.Window.handle == NULL) {
         gsgl_GetLastError();
         return;
     } else {
@@ -290,11 +318,14 @@ void gsgl_InitWindow(int width, int height, const char *title) {
 
     // show it
     Logger_log(LOGGER_INFO, "GRAPHICS: - Showing window");
-    ShowWindow(core.Window.handle, SW_NORMAL);
+    ShowWindow(platformCore.Window.handle, SW_NORMAL);
 
     // set cursor
-    core.Window.cursor = LoadCursor(NULL, IDC_ARROW);
-    SetCursor(core.Window.cursor);
+    platformCore.Window.cursor = LoadCursor(NULL, IDC_ARROW);
+    SetCursor(platformCore.Window.cursor);
+    #else
+
+    #endif
 
     // initialize framebuffers if needed
     core.Window.width = width;
@@ -376,13 +407,17 @@ void gsgl_PollEvents() {
         core.Input.keysOld[i] = core.Input.keysNew[i];
     }
     
-    int res = GetMessage(&core.Window.msg, core.Window.handle, 0, 0);
+    #ifdef _WIN32
+    int res = GetMessage(&platformCore.Window.msg, platformCore.Window.handle, 0, 0);
     if (res == 0) {
         gsgl_CloseWindow();
     } else {
-        TranslateMessage(&core.Window.msg);
-        DispatchMessage(&core.Window.msg);
+        TranslateMessage(&platformCore.Window.msg);
+        DispatchMessage(&platformCore.Window.msg);
     }
+    #else
+
+    #endif
 }
 
 bool gsgl_ShouldClose() {
@@ -392,7 +427,11 @@ bool gsgl_ShouldClose() {
 void gsgl_CloseWindow() {
     core.Window.closing = true;
 
+    #ifdef _WIN32
     PostQuitMessage(0);
+    #else
+
+    #endif
 }
 
 int gsgl_GetScreenWidth() {
@@ -403,21 +442,34 @@ int gsgl_GetScreenHeight() {
 }
 
 bool gsgl_IsWindowMinimized() {
-    return IsIconic(core.Window.handle);
+    #ifdef _WIN32
+    return IsIconic(platformCore.Window.handle);
+    #else
+    return false;
+    #endif
 }
 bool gsgl_IsWindowMaximized() {
-    return IsZoomed(core.Window.handle);
+    #ifdef _WIN32
+    return IsZoomed(platformCore.Window.handle);
+    #else
+    return false;
+    #endif
 }
 bool gsgl_IsWindowVisible() {
     // Currently functions like IsWindowMinimized.
     // This is just future proofing when I need it at one point.
-    return IsIconic(core.Window.handle);
+    #ifdef _WIN32
+    return IsIconic(platformCore.Window.handle);
+    #else
+    return false;
+    #endif
 }
 
 // Graphics functions
 void gsgl_Draw() {
     if (gsgl_IsWindowVisible()) return;
 
+    #ifdef _WIN32
     BITMAPINFO bmi = {0};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bmi.bmiHeader.biWidth = core.Window.width;
@@ -429,6 +481,9 @@ void gsgl_Draw() {
     HDC hdc = GetDC(core.Window.handle);
     StretchDIBits(hdc, 0, 0, core.Window.width, core.Window.height, 0, 0, core.Window.width, core.Window.height, core.Graphics.buffer2, &bmi, DIB_RGB_COLORS, SRCCOPY);
     ReleaseDC(core.Window.handle, hdc);
+    #else
+
+    #endif
 }
 void gsgl_SwapBuffers() {
     gsgl_WindowReady();
@@ -446,14 +501,18 @@ void gsgl_SwapBuffers() {
     // Update cursor
     if (core.Input.cursorChanged == true && !gsgl_IsWindowVisible()) {
         // This is a bit messy.
+        #ifdef _WIN32
         if (core.Input.cursorStyle == GSGL_POINTER) {
-            core.Window.cursor = LoadCursor(NULL, IDC_ARROW);
+            platformCore.Window.cursor = LoadCursor(NULL, IDC_ARROW);
         } else if (core.Input.cursorStyle == GSGL_CLICK) {
-            core.Window.cursor = LoadCursor(NULL, IDC_HAND);
+            platformCore.Window.cursor = LoadCursor(NULL, IDC_HAND);
         } else if (core.Input.cursorStyle == GSGL_TEXT) {
-            core.Window.cursor = LoadCursor(NULL, IDC_IBEAM);
+            platformCore.Window.cursor = LoadCursor(NULL, IDC_IBEAM);
         }
-        SetCursor(core.Window.cursor);
+        SetCursor(platformCore.Window.cursor);
+        #else
+
+        #endif
 
         core.Input.cursorChanged = false;
     }
@@ -483,8 +542,8 @@ void gsgl_SwapBuffers() {
 void gsgl_BufferAccess(int buffer, int index, uint32_t color) {
     if (gsgl_IsWindowVisible()) return; // optimization
 
-    int x = (int)floor(index % core.Window.width);
-    int y = (int)floor(index / core.Window.width);
+    int x = (int)std::floor(index % core.Window.width);
+    int y = (int)std::floor(index / core.Window.width);
     if (core.Graphics.Scissors.active == true) {
         if ((x < core.Graphics.Scissors.startX || x >= core.Graphics.Scissors.endX) || (y < core.Graphics.Scissors.startY || y >= core.Graphics.Scissors.endY)) {
             return;
@@ -647,6 +706,7 @@ void gi_UpdateSettings() {
     // update some stuff. not a lot needs to be updated here currently
     // this seems to fire somewhat frequently but its kind of weird when it updates
 
+    #ifdef _WIN32
     DWORD repeatDelay;
     DWORD repeatSpeed;
 
@@ -655,6 +715,9 @@ void gi_UpdateSettings() {
 
     core.Input.repeatDelay = int(float(repeatDelay) * 60);
     core.Input.repeatSpeed = int(roundf((1 / float(repeatSpeed+1)) * 60));
+    #else
+
+    #endif
 }
 void gi_ResizeWindow(int width, int height) {
     core.Window.width = width;
@@ -677,6 +740,7 @@ void gi_InitBuffers() {
     }
 }
 
+#ifdef _WIN32
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_CREATE: {
@@ -780,8 +844,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+#else
+
+#endif
 
 // Timer (all of it is taken from raylib)
+#ifdef _WIN32
 LARGE_INTEGER GetTimerFrequency() {
     LARGE_INTEGER frequency = {{0, 0}};
 	if (frequency.QuadPart == 0) {
@@ -790,6 +858,7 @@ LARGE_INTEGER GetTimerFrequency() {
 	}
     return frequency;
 }
+#endif
 
 void gsgl_InitTimer() {
     Logger_log(LOGGER_INFO, "GRAPHICS: Initiating timer");
@@ -814,12 +883,16 @@ void gsgl_InitTimer() {
 }
 
 double gsgl_GetTime() {
-    /*double time = glfwGetTime();   // Elapsed time since glfwInit()
-    return time;*/
+    #ifdef _WIN32
     LARGE_INTEGER frequency = GetTimerFrequency();
     LARGE_INTEGER counter;
 	QueryPerformanceCounter(&counter);
-	return (double) (counter.QuadPart / (double) frequency.QuadPart);
+    return (double) (counter.QuadPart / (double) frequency.QuadPart);
+    #else
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return (uint64_t) ts.tv_sec * 1000000000 + (uint64_t) ts.tv_nsec;
+    #endif
 }
 
 void gsgl_WaitTime(double seconds) {
@@ -954,6 +1027,7 @@ char gsgl_GetLastChar() {
 
 // clipboard
 const char* gsgl_GetClipboardText() {
+    #ifdef _WIN32
     if (!IsClipboardFormatAvailable(CF_TEXT)) {
         Logger_log(LOGGER_ERROR, "CLIPBOARD: Text format not available (Get)");
         return "";
@@ -986,8 +1060,12 @@ const char* gsgl_GetClipboardText() {
     CloseClipboard();
 
     return pszText;
+    #else
+    return "";
+    #endif
 }
 GSGL_API void gsgl_SetClipboardText(const char* txt) {
+    #ifdef _WIN32
     if (!OpenClipboard(core.Window.handle)) {
         Logger_log(LOGGER_ERROR, "CLIPBOARD: Couldn't open clipboard (Set)");
         gsgl_GetLastError();
@@ -1006,4 +1084,7 @@ GSGL_API void gsgl_SetClipboardText(const char* txt) {
         gsgl_GetLastError();
     }
     CloseClipboard();
+    #else
+
+    #endif
 }
