@@ -641,9 +641,9 @@ void gsgl_Draw() {
     bmi.bmiHeader.biBitCount = 32;
     bmi.bmiHeader.biCompression = BI_RGB;
 
-    HDC hdc = GetDC(core.Window.handle);
+    HDC hdc = GetDC(platformCore.Window.handle);
     StretchDIBits(hdc, 0, 0, core.Window.width, core.Window.height, 0, 0, core.Window.width, core.Window.height, core.Graphics.buffer2, &bmi, DIB_RGB_COLORS, SRCCOPY);
-    ReleaseDC(core.Window.handle, hdc);
+    ReleaseDC(platformCore.Window.handle, hdc);
     #else
     if (
         platformCore.Graphics.image != NULL && platformCore.Graphics.context && 
@@ -1114,7 +1114,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         // extra
         case WM_SETCURSOR: {
             if (LOWORD(lParam) == HTCLIENT) {
-                SetCursor(core.Window.cursor);
+                SetCursor(platformCore.Window.cursor);
                 return TRUE;
             }
         }
@@ -1317,7 +1317,7 @@ const char* gsgl_GetClipboardText() {
         Logger_log(LOGGER_ERROR, "CLIPBOARD: Text format not available (Get)");
         return "";
     }
-    if (!OpenClipboard(core.Window.handle)) {
+    if (!OpenClipboard(platformCore.Window.handle)) {
         Logger_log(LOGGER_ERROR, "CLIPBOARD: Couldn't open clipboard (Get)");
         gsgl_GetLastError();
         return "";
@@ -1351,7 +1351,7 @@ const char* gsgl_GetClipboardText() {
 }
 GSGL_API void gsgl_SetClipboardText(const char* txt) {
     #ifdef _WIN32
-    if (!OpenClipboard(core.Window.handle)) {
+    if (!OpenClipboard(platformCore.Window.handle)) {
         Logger_log(LOGGER_ERROR, "CLIPBOARD: Couldn't open clipboard (Set)");
         gsgl_GetLastError();
         return;
