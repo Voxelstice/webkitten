@@ -2,7 +2,7 @@
 > This browser is not guranteed to be safe. While it does try to follow basic security practices, some things may be unsafe. Use at your own risk.
 > This is also a work in progress. Expect instability from time to time, and report bugs as needed.
 
-# tinyweb
+# webkitten
 A lightweight browser that can load and render basic websites.
 
 ## Why?

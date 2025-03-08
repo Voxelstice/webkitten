@@ -14,7 +14,7 @@ Renderer::Renderer() {
 void Renderer::init() {
     // initialize window
     gsgl_SoftwareRender();
-    gsgl_InitWindow(1600, 900, "tinyweb");
+    gsgl_InitWindow(1600, 900, "webkitten");
     gsgl_SetFrameRate(60);
 
     Logger_log(LOGGER_INFO, "----------------------------------------------------------------------------------");

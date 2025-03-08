@@ -243,12 +243,12 @@ void gsgl_GetLastError() {
             0, NULL) == 0)
     {
         Logger_log(LOGGER_ERROR, "GRAPHICS: Internal error: FormatMessage failed", lpMsgBuf);
-        MessageBox(NULL, "FormatMessage failed", "tinyweb", MB_OK);
+        MessageBox(NULL, "FormatMessage failed", "webkitten", MB_OK);
         gsgl_CloseWindow();
     }
 
     Logger_log(LOGGER_ERROR, "GRAPHICS: Internal error: %s", lpMsgBuf);
-    MessageBox(NULL, (LPCSTR)lpMsgBuf, "tinyweb", MB_OK);
+    MessageBox(NULL, (LPCSTR)lpMsgBuf, "webkitten", MB_OK);
 
     LocalFree(lpMsgBuf);
     gsgl_CloseWindow();
@@ -311,7 +311,7 @@ void gsgl_InitWindow(int width, int height, const char *title) {
 
     #ifdef _WIN32
     // set class name
-    const char* className = "tinyweb";
+    const char* className = "webkitten";
 
     // register class
     WNDCLASS winClass = { };

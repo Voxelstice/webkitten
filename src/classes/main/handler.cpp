@@ -18,7 +18,7 @@ void Handler::init() {
     tab1->init();
     tabs.push_back(tab1);
 
-    Tab* tab2 = new Tab("https://github.com/Voxelstice/tinyweb");
+    Tab* tab2 = new Tab("https://github.com/Voxelstice/webkitten");
     tab2->init();
     tabs.push_back(tab2);
 

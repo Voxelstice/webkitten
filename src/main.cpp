@@ -27,7 +27,7 @@ int main() {
     Logger_init();
 
     Logger_log(LOGGER_INFO, "Application started");
-    Logger_log(LOGGER_INFO, "tinyweb - a lightweight browser by Voxelstice");
+    Logger_log(LOGGER_INFO, "webkitten - a lightweight browser by Voxelstice");
 
     #ifdef BITNESS64
     Logger_log(LOGGER_INFO, "Running the 64-bit build");

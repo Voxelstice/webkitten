@@ -69,7 +69,7 @@ void Networker::CheckCode(CURLcode code) {
         std::string str = "libcurl error: ";
         str = str + (curl_easy_strerror(code));
         #ifdef _WIN32
-        MessageBox(0, str.c_str(), "tinyweb", 0x00000010L);
+        MessageBox(0, str.c_str(), "webkitten", 0x00000010L);
         #else
 
         #endif
@@ -81,7 +81,7 @@ bool Networker::IsReady() {
 
 // Set default properties for a curl instance
 void Networker::SetInstanceDef(CURL* curl) {
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "tinyweb/1.0");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "webkitten/1.0");
 
     SetInstanceCert(curl);
 }
